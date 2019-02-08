@@ -11,3 +11,9 @@ Developers and others can look through and run the code.  The main entry points 
 ------
 
 Shameless plug: I work primarily as a software consultant.  If you or your company need electronics, sensors, data processing, automation or robotics expertise, feel free to send inquiries to chad@chadev.com.  I'm part of a medium sized team and we've worked for many businesses you're familiar with, and we have a long history of success.
+
+![3D Course View](https://i.imgur.com/vVPcNBh.png)
+
+![Green Slopes with Bunker](https://i.imgur.com/VazhLEU.png)
+
+![User Interface](https://i.imgur.com/4GnzENd.png)
