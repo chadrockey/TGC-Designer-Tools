@@ -14,7 +14,7 @@ import yaml
 
 from GeoPointCloud import *
 
-def load_usgs_directory(d):
+def load_usgs_directory(d, printf=print):
     pc = GeoPointCloud()
 
     # Add current directory to os path to find laszip-cli for laz files
@@ -24,7 +24,7 @@ def load_usgs_directory(d):
         # Only parse laz and las files
         if not filename.endswith('.laz') and not filename.endswith('.las'): continue
 
-        print("Processing: " + filename)
+        printf("Processing: " + filename)
 
         # Find the XML file with the name closest matching to the las/laz
         highest_match = 0.0
@@ -36,10 +36,10 @@ def load_usgs_directory(d):
                 xml = x
 
         if xml is None:
-            print("Could not find metadata for " + filename + ".  Skipping...")
+            printf("Could not find metadata for " + filename + ".  Skipping...")
             continue
 
-        print("Using metadata: " + xml.name)
+        printf("Using metadata: " + xml.name)
         tree = ET.parse(xml)
         root = tree.getroot()
 
@@ -93,7 +93,7 @@ def load_usgs_directory(d):
             elif unit_name == 'foot': # International Foot
                 unit = 0.3048
             else:
-                print('Unknown unit: ' + unit_name + ".  Can't process data accurately, please report an issue and send this lidar and metadata")
+                printf('Unknown unit: ' + unit_name + ".  Can't process data accurately, please report an issue and send this lidar and metadata")
                 unit = 1.0 # Maybe it's meters and we'll get lucky
 
         # Continue to look for Metadata
@@ -137,7 +137,7 @@ def load_usgs_directory(d):
             if not None in [semiaxis, denflat, sfctrmer, feast, fnorth, meridian, latprj]:
                 proj = pyproj.Proj(proj=sys, datum=datum, ellps=ellips, a=semiaxis, f=denflat, k=sfctrmer, x_0=feast, y_0=fnorth, lon_0=meridian, lat_0=latprj, units='m', axis='enu')
 
-        print("Unit in metadata is " + str(unit))
+        printf("Unit in metadata is " + str(unit))
 
         # Use laspy to load the point data
         with laspy.file.File(d+"/"+filename, mode='r') as f:
@@ -154,7 +154,7 @@ def load_usgs_directory(d):
                 # First dataset will set the coordinate system
                 pc.proj = proj
             elif str(pc.proj) != str(proj):
-                print("Warning: Data has different projection, re-projecting coordinates.  This may take some time.")
+                printf("Warning: Data has different projection, re-projecting coordinates.  This may take some time.")
                 
                 converted_x = []
                 converted_y = []

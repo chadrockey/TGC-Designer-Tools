@@ -169,15 +169,15 @@ def newHole(userpar, points):
 
     return hole
 
-def getOSMData(bottom_lat, left_lon, top_lat, right_lon):
+def getOSMData(bottom_lat, left_lon, top_lat, right_lon, printf=print):
     op = overpy.Overpass()
     # Order is South, West, North, East
     coord_string = str(bottom_lat) + "," + str(left_lon) + "," + str(top_lat) + "," + str(right_lon)
     query = "(node(" + coord_string + ");way(" + coord_string + "););out;"
-    print("Overpass query: " + query)
+    printf("OpenStreetMap Overpass query: " + query)
     return op.query(query) # Request both nodes and ways for the region of interest using a union
 
-def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0):
+def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0, printf=print):
     # Ways represent features composed of many lat/long points (nodes)
     # We can convert these directly into the game's splines
 
@@ -200,7 +200,7 @@ def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0):
             # Left, Top, Right, Bottom
             nbb = nodeBoundingBox(nds)
             if nbb[0] < ul_tgc[0] or nbb[1] > ul_tgc[2] or nbb[2] > lr_tgc[0] or nbb[3] < lr_tgc[2]:
-                print("Golf element : " + golf_type + " is off of map, skipping...")
+                printf("Golf element : " + golf_type + " is off of map, skipping...")
                 continue
 
             if golf_type == "green":
@@ -224,7 +224,7 @@ def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0):
                         hole_num = len(hole_dictionary) + 1
                     hole_dictionary[hole_num] = hole
             else:
-                print("Unsupported type: " + golf_type)
+                printf("Unsupported type: " + golf_type)
 
     # Insert all the found holes
     for key in sorted(hole_dictionary):
@@ -241,7 +241,7 @@ def drawWayOnImage(way, color, im, pc, image_scale, x_offset=0.0, y_offset=0.0):
     nds = np.int32([nds]) # Bug with fillPoly, needs explict cast to 32bit
     cv2.fillPoly(im, nds, color) 
 
-def addOSMToImage(ways, im, pc, image_scale, x_offset=0.0, y_offset=0.0):
+def addOSMToImage(ways, im, pc, image_scale, x_offset=0.0, y_offset=0.0, printf=print):
     for way in ways:
         golf_type = way.tags.get("golf", None)
         if golf_type is not None:

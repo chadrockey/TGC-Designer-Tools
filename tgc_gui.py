@@ -13,6 +13,7 @@ import numpy
 from PIL import Image, ImageTk
 
 import tgc_tools
+import lidar_map_api
 from tgc_visualizer import drawCourseAsImage
 
 image_width = 500
@@ -54,7 +55,6 @@ def getCourseDirectory(output):
     cdir =  tk.filedialog.askdirectory(initialdir = ".", title = "Select course directory")
     if cdir:
         root.filename = cdir
-        print(root.filename)
         output.config(text=root.filename)
 
         drawPlaceholder() # Clear out existing course while picking a new one
@@ -67,7 +67,7 @@ def getCourseDirectory(output):
             pass
 
 def alert(msg):
-    popup = tk.Tk()
+    popup = tk.Toplevel()
     popup.geometry("200x200")
     popup.wm_title("Alert")
     label = ttk.Label(popup, text=msg, wraplength=200, justify=CENTER)
@@ -224,7 +224,7 @@ def combineAction():
         course1_json = tgc_tools.merge_courses(course1_json, course2_json)
         drawCourse(course1_json)
 
-        popup = tk.Tk()
+        popup = tk.Toplevel()
         popup.geometry("400x400")
         popup.wm_title("Confirm course merge?")
         label = ttk.Label(popup, text="Confirm course merge?")
@@ -234,6 +234,25 @@ def combineAction():
         B2 = ttk.Button(popup, text="No, Abandon Merge", command = partial(confirmCourse, popup, None))
         B2.pack()
         popup.mainloop()
+
+def tkinterPrintFunction(root, textfield, message):
+    textfield.configure(state='normal')
+    textfield.insert(tk.END, message + "\n")
+    textfield.configure(state='disabled')
+    textfield.see(tk.END)
+    root.update()
+
+def runLidar(printf):
+    global root
+
+    if not root or not hasattr(root, 'filename'):
+        alert("Select a course directory before processing lidar files")
+        return
+
+    sample_scale = 2.0
+
+    lidar_dir_path = tk.filedialog.askdirectory(initialdir = ".", title = "Select las/laz files directory")
+    lidar_map_api.generate_lidar_previews(lidar_dir_path, sample_scale, root.filename, printf=printf)
 
 root = tk.Tk()
 root.geometry("800x600")
@@ -250,12 +269,9 @@ root.title("TGC Golf Tools")
 header_frame = Frame(root)
 output = Label(header_frame, background="lightgrey", width=75, height=1)
 output.pack(side=LEFT)
-#output.grid(row=1, column = 0)
 B = Button(header_frame, text = "Select Course Directory", command = partial(getCourseDirectory, output))
 B.pack(side=LEFT)
 header_frame.pack(fill=X)
-#B.grid(row=1, column=1)
-#B.place(x = 50,y = 50)
 
 nb = ttk.Notebook(root)
 
@@ -266,10 +282,9 @@ tools = ttk.Frame(nb, style='new.TFrame')
 lidar = ttk.Frame(nb, style='new.TFrame')
 course = ttk.Frame(nb, style='new.TFrame')
 nb.pack(fill=BOTH, expand=1)
-#nb.grid(row=2, column = 0, sticky='E', columnspan=3)
 nb.add(tools, text='Course Tools')
-nb.add(lidar, text='Lidar Import')
-nb.add(course, text='Course Creation')
+nb.add(lidar, text='Process Lidar')
+nb.add(course, text='Import Terrain and Features')
 
 ## Tools panel
 image_frame = Frame(tools, width=image_width, height=image_height)
@@ -341,23 +356,17 @@ itb.pack(pady=5)
 ccb = Button(tool_buttons_frame, text="Combine Course Directory", command=combineAction)
 ccb.pack(pady=5)
 
-
-
-'''tkim = ImageTk.PhotoImage(image=im)
-course_json = tgc_tools.get_course_json('C:/Users/chad/Documents/GitHub/TGC_Terrain_Importer/AngelPark')
-data = drawCourseAsImage(course_json)
-im = Image.fromarray((255.0*data).astype(np.uint8), 'RGB').resize((image_width, image_height), Image.ANTIALIAS)
-#im = Image.fromarray((255.0*cv2.cvtColor(data, cv2.COLOR_BGR2GRAY)).astype(np.uint8), 'L')'''
 default_im = ImageTk.PhotoImage(image=iim)
 canvas_image = canvas.create_image(0,0,image=default_im,anchor=tk.NW)
-#canvas.image = canvas_photo
 root.update()
 
-#entry.grid(row=2, column=1, columnspan=2, padx=5, pady=(0,10))
-#button.grid(row=3, column=1, columnspan=2, pady=5)
-#l2.grid(row=4, column=1, padx=5, sticky=W)
-#output.grid(row=5, column=1, columnspan=2, padx=5, pady=(0,10))
+## Lidar panel
+consoleOutput = tk.scrolledtext.ScrolledText(master=lidar, wrap=tk.WORD, width=20, height=10, state=DISABLED)
+printf = partial(tkinterPrintFunction, lidar, consoleOutput)
+lidarbutton = Button(lidar, text="Generate Heightmap from Lidar", command=partial(runLidar, printf))
 
-#nb.pack(expand=1, fill="both")
+lidarbutton.pack(pady=10)
+consoleOutput.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
+
 
 root.mainloop()

@@ -40,16 +40,16 @@ else:
 print("Loading data")
 
 # See if we need to infill.
-hm_file = Path(lidar_dir_path) / 'output/heightmap.npy'
-in_file = Path(lidar_dir_path) / 'output/infilled.npy'
+hm_file = Path(lidar_dir_path) / 'lidar/heightmap.npy'
+in_file = Path(lidar_dir_path) / 'lidar/infilled.npy'
 
 if not in_file.exists() or hm_file.stat().st_mtime > in_file.stat().st_mtime:
     print("Filling holes in heightmap")
     # Either infilled doesn't exist or heightmap.npy is newer than infilled
-    read_dictionary = np.load(lidar_dir_path + '/output/heightmap.npy').item()
+    read_dictionary = np.load(lidar_dir_path + '/lidar/heightmap.npy').item()
     im = read_dictionary['heightmap'].astype('float32')
 
-    mask = cv2.imread(lidar_dir_path + '/output/mask.png', cv2.IMREAD_COLOR)
+    mask = cv2.imread(lidar_dir_path + '/lidar/mask.png', cv2.IMREAD_COLOR)
     # Turn mask into matrix order from image order
     mask = np.flip(mask, 0)
 
@@ -58,9 +58,9 @@ if not in_file.exists() or hm_file.stat().st_mtime > in_file.stat().st_mtime:
 
     # Export data
     read_dictionary['heightmap'] = out
-    np.save(lidar_dir_path + '/output/infilled', read_dictionary) # Save as numpy format since we have raw float elevations
+    np.save(lidar_dir_path + '/lidar/infilled', read_dictionary) # Save as numpy format since we have raw float elevations
 else:
-    read_dictionary = np.load(lidar_dir_path + '/output/infilled.npy').item()
+    read_dictionary = np.load(lidar_dir_path + '/lidar/infilled.npy').item()
 
 pc = GeoPointCloud()
 image_scale = read_dictionary['image_scale']

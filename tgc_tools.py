@@ -15,9 +15,9 @@ def base64GZEncode(data, level):
     gz_data = gzip.compress(data, compresslevel=level)
     return base64.b64encode(gz_data)
 
-def create_export_directory(course_directory):
+def create_lidar_directory(course_directory):
     course_dir = Path(course_directory)
-    export_dir = course_dir / 'output' # Needed for intermediate files
+    export_dir = course_dir / 'lidar' # Needed for intermediate files
     try:
         Path.mkdir(export_dir, mode=0o777)
     except FileExistsError as err:
