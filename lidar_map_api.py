@@ -428,7 +428,6 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     printf("Done!  Now go edit your mask.png to remove uneeded areas")
 
 if __name__ == "__main__":
-    keywords = []
     if len(sys.argv) < 4:
         print("Usage: python program.py LAS_DIRECTORY OUTPUT_DIRECTORY METERS_PER_PIXEL [FORCE_EPSG] [FORCE_UNIT]")
         sys.exit(0)
