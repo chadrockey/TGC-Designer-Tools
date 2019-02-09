@@ -319,7 +319,7 @@ def get_terrain_extremes(course_json):
     return (ll, ul, ur, lr)
 
 # Determines the four extremes and tries to shift and rotate the course to fit within 2000m
-def auto_position_course(course_json):
+def auto_position_course(course_json, printf=print):
     # TODO Corners is redundant with the boundingRect
     extremes = get_terrain_extremes(course_json)
     rect = getBoundingBox(course_json)
@@ -333,7 +333,7 @@ def auto_position_course(course_json):
         fits_on_map = True
 
     if fits_on_map:
-        print("Course fits within map")
+        printf("Course fits within map")
 
     # If course would fit within 2000x2000, don't try to rotate it
     rotation = 0.0
@@ -352,14 +352,14 @@ def auto_position_course(course_json):
             rotation_sum += abs(angle_diff)
 
         rotation = rotation_sum/float(len(extremes))
-        print("Rotating course by: " + str(rotation))
+        printf("Rotating course by: " + str(rotation))
         course_json = rotate_course(course_json, rotation)
 
         # See if we needed to rotate the opposite direction
         rect = getBoundingBox(course_json)
 
         if rect[2] > 2000.0 or rect[3] > 2000.0:
-            print("Trying opposite rotation: " + str(-rotation))
+            printf("Trying opposite rotation: " + str(-rotation))
             # Undo our previous rotation and try the other direction
             course_json = rotate_course(course_json, -2.0*rotation)
 
@@ -369,7 +369,7 @@ def auto_position_course(course_json):
     eastwest_shift = -rect[2] / 2 - rect[0]
     northsouth_shift = -rect[3] / 2 - rect[1]
 
-    print("Shift course by: " + str(eastwest_shift) + " x " + str(northsouth_shift))
+    printf("Shift course by: " + str(eastwest_shift) + " x " + str(northsouth_shift))
 
     return shift_course(course_json, eastwest_shift, northsouth_shift)
 
@@ -461,7 +461,7 @@ def merge_courses(course1_json, course2_json):
     return course1_json
 
 
-def elevate_terrain(course_json, elevate_shift, buffer_height=1.5, clip_lowest_value=-2.0):
+def elevate_terrain(course_json, elevate_shift, buffer_height=1.5, clip_lowest_value=-2.0, printf=print):
     # Automatic terrain shift
     if elevate_shift == 0.0 or elevate_shift == None:
         elevations = []
@@ -494,10 +494,10 @@ def elevate_terrain(course_json, elevate_shift, buffer_height=1.5, clip_lowest_v
             # The lowest valid point will be our new zero
             elevate_shift = -min(s[split_index:]) + buffer_height
         except IndexError:
-            print("Course likely does not need elevation adjustment")
+            printf("Course likely does not need elevation adjustment")
             return course_json
 
-    print("Shifting elevation by: " + str(elevate_shift))
+    printf("Shifting elevation by: " + str(elevate_shift))
 
     remaining_height = json.loads('[]')
     for i in course_json["userLayers"]["height"]:

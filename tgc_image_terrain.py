@@ -34,7 +34,7 @@ def set_constants(course_json, flatten_fairways=False, flatten_greens=False):
     return course_json
 
 def generate_course(course_json, heightmap_dir_path, options_dict=None, printf=print):
-    printf("Loading data")
+    printf("Loading data from " + heightmap_dir_path)
 
     # See if we need to infill.
     hm_file = Path(heightmap_dir_path) / '/heightmap.npy'
@@ -91,11 +91,11 @@ def generate_course(course_json, heightmap_dir_path, options_dict=None, printf=p
 
     # Automatically adjust course elevation
     printf("Moving course to lowest valid elevation")
-    course_json = tgc_tools.elevate_terrain(course_json, None)
+    course_json = tgc_tools.elevate_terrain(course_json, None, printf=printf)
 
     # Automatic rotate to fit if needed
     printf("Adjusting course to fit on map")
-    course_json = tgc_tools.auto_position_course(course_json)
+    course_json = tgc_tools.auto_position_course(course_json, printf=printf)
 
     return course_json
 

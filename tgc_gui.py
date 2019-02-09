@@ -14,6 +14,7 @@ from PIL import Image, ImageTk
 
 import tgc_tools
 import lidar_map_api
+import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
 
 image_width = 500
@@ -277,6 +278,24 @@ def runLidar(scale_entry, epsg_entry, unit_entry, printf):
     if lidar_dir_path:
         lidar_map_api.generate_lidar_previews(lidar_dir_path, sample_scale, root.filename, force_epsg=force_epsg, force_unit=force_unit, printf=printf)
 
+def generateCourseFromLidar(options_entries_dict, printf):
+    global root
+    global course_json
+
+    if not root or not hasattr(root, 'filename'):
+        alert("Select a course directory before processing heightmap file")
+        return
+
+    # There may be many options for this in the future (which splines to add, clear splines?, flatten fairways/greens, etc) so store efficiently
+    options_dict = {}
+
+    heightmap_dir_path = tk.filedialog.askdirectory(initialdir=root.filename, title="Select heightmap and mask files directory")
+    if heightmap_dir_path:
+        drawPlaceholder()
+        course_json = tgc_image_terrain.generate_course(course_json, heightmap_dir_path, options_dict=options_dict, printf=printf)
+        drawCourse(course_json)
+        printf("Done generating course")
+
 root = tk.Tk()
 root.geometry("800x600")
 
@@ -309,7 +328,7 @@ nb.add(tools, text='Course Tools')
 nb.add(lidar, text='Process Lidar')
 nb.add(course, text='Import Terrain and Features')
 
-## Tools panel
+## Tools Tab
 image_frame = Frame(tools, width=image_width, height=image_height)
 image_frame.pack(anchor=NW, side=LEFT)
 canvas = tk.Canvas(image_frame, width=image_width, height=image_height)
@@ -383,9 +402,9 @@ default_im = ImageTk.PhotoImage(image=iim)
 canvas_image = canvas.create_image(0,0,image=default_im,anchor=tk.NW)
 root.update()
 
-## Lidar panel
-consoleOutput = tk.scrolledtext.ScrolledText(master=lidar, wrap=tk.WORD, width=20, height=10, state=DISABLED)
-printf = partial(tkinterPrintFunction, lidar, consoleOutput)
+## Lidar Tab
+lidarConsoleOutput = tk.scrolledtext.ScrolledText(master=lidar, wrap=tk.WORD, width=20, height=10, state=DISABLED)
+lidarPrintf = partial(tkinterPrintFunction, lidar, lidarConsoleOutput)
 
 lidarControlFrame = Frame(lidar, bg=tool_bg)
 
@@ -398,7 +417,7 @@ epsg_entry.insert(END, "")
 lidar_unit_label = Label(lidarControlFrame, text="Force Lidar Unit", fg=text_fg, bg=tool_bg)
 lidar_unit_entry = tk.Entry(lidarControlFrame, width=8, justify='center')
 lidar_unit_entry.insert(END, "")
-lidarbutton = Button(lidarControlFrame, text="Generate Heightmap from Lidar", command=partial(runLidar, scale_entry, epsg_entry, lidar_unit_entry, printf))
+lidarbutton = Button(lidarControlFrame, text="Generate Heightmap from Lidar", command=partial(runLidar, scale_entry, epsg_entry, lidar_unit_entry, lidarPrintf))
 
 scale_label.pack(side=LEFT, padx=5)
 scale_entry.pack(side=LEFT, padx=5)
@@ -409,7 +428,20 @@ lidar_unit_entry.pack(side=LEFT, padx=5)
 lidarbutton.pack(side=LEFT, padx=5, pady=5)
 
 lidarControlFrame.pack(pady=5)
-consoleOutput.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
+lidarConsoleOutput.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
 
+# Import Terrain and Features Tab
+courseConsoleOutput = tk.scrolledtext.ScrolledText(master=course, wrap=tk.WORD, width=20, height=10, state=DISABLED)
+coursePrintf = partial(tkinterPrintFunction, course, courseConsoleOutput)
+
+courseControlFrame = Frame(course, bg=tool_bg)
+
+options_entries_dict = {} # Store the many entries into one dictionary
+
+coursebutton = Button(courseControlFrame, text="Import Heightmap and OSM into Course", command=partial(generateCourseFromLidar, options_entries_dict, coursePrintf))
+coursebutton.pack(padx=10, pady=10)
+
+courseControlFrame.pack(side=LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
+courseConsoleOutput.pack(side=LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 
 root.mainloop()
