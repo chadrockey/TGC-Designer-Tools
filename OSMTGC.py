@@ -28,7 +28,7 @@ def getwaypoint3D(x, y, z):
     wp["z"] = z
     return wp
 
-def completeSpline(points, spline_json, handle_length):
+def completeSpline(points, spline_json, handle_length, tight_splines=True):
     number_points = len(spline_json["waypoints"])
     for i in range(0, number_points):
         prev_index = i - 1 # Works for negative
@@ -43,10 +43,15 @@ def completeSpline(points, spline_json, handle_length):
         # Just guessing what these points are and if they are important
         # Set point one and point two to be on the line between the previous and next point, but centered on this point
         angle = math.atan2(float(n["y"])-float(p["y"]), float(n["x"])-float(p["x"]))
-        # Pull the spline handles perpendicular and inside the shape in order to accurately
-        # represent the shapes downloaded online.  Don't want a lot of expansion or smoothing
-        angle_one = angle - 1.1 * math.pi / 2.0
-        angle_two = angle - 0.9 * math.pi / 2.0
+        if tight_splines:
+            # Pull the spline handles perpendicular and inside the shape in order to accurately
+            # represent the shapes downloaded online.  Don't want a lot of expansion or smoothing
+            angle_one = angle - 1.1 * math.pi / 2.0
+            angle_two = angle - 0.9 * math.pi / 2.0
+        else:
+            # Loose, smooth splines
+            angle_one = angle + math.pi
+            angle_two = angle
 
         # TODO Use angle to center to guarantee these point inwards?  I see them pointing out sometimes
 
@@ -55,7 +60,7 @@ def completeSpline(points, spline_json, handle_length):
         spline_json["waypoints"][i]["pointTwo"]["x"] = t["x"] + handle_length * math.cos(angle_two)
         spline_json["waypoints"][i]["pointTwo"]["y"] = t["y"] + handle_length * math.sin(angle_two)
 
-def newSpline(points, handle_length):
+def newSpline(points, handle_length, tight_splines=True):
     spline = json.loads('{"surface": 1, \
             "secondarySurface": 11, \
             "secondaryWidth": -1.0, \
@@ -70,7 +75,7 @@ def newSpline(points, handle_length):
     for p in points:
         spline["waypoints"].append(getwaypoint(*p))
 
-    completeSpline(points, spline, handle_length)
+    completeSpline(points, spline, handle_length, tight_splines=tight_splines)
 
     return spline
 
@@ -128,15 +133,43 @@ def newRough(points):
     rh["secondaryWidth"] = 0.0
     return rh
 
+def newCartPath(points):
+    cp = newSpline(points, 4.0, tight_splines=False) # Smooth a lot
+
+    # Cartpath is surface ???
+    # Game outputs secondary as ???
+    # Remove with 0 width
+    cp["surface"] = 7
+    cp["secondarySurface"] = 11
+    cp["secondaryWidth"] = 0.0
+    cp["width"] = 2.0
+    # 0 is 'not closed' and 3 is 'closed and filled' maybe a bitmask?
+    cp["state"] = 0 # Todo figure out what this means
+    cp["isClosed"] = False
+    cp["isFilled"] = False
+    return cp
+
+def newWalkingPath(points):
+    wp = newSpline(points, 2.0, tight_splines=False)
+
+    # Make walking paths fairway?
+    # Game outputs secondary as ???
+    # Remove with 0 width
+    wp["surface"] = 2
+    wp["secondarySurface"] = 3
+    wp["secondaryWidth"] = 0.0
+    wp["width"] = 1.0
+    wp["state"] = 0 # Todo figure out what this means
+    wp["isClosed"] = False
+    wp["isFilled"] = False
+    return wp
+
 def newWaterHazard(points):
     # Add placeholder for water hazard.
     # Add spline and fill with black mulch
     wh = newSpline(points, 0.2)
 
-    # Rough is surface 3
-    # Going to be really nice and not make this heavy rough (4)
-    # Game outputs secondary as 1
-    # Remove with 0 width
+    # Fill as mulch as a placeholder
     wh["surface"] = 8
     wh["secondarySurface"] = 11
     wh["secondaryWidth"] = 0.0
@@ -221,6 +254,10 @@ def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0, pr
                 course_json["surfaceSplines"].append(newRough(nds))
             elif golf_type == "water_hazard" or golf_type == "lateral_water_hazard":
                 course_json["surfaceSplines"].append(newWaterHazard(nds))
+            elif golf_type == "cartpath":
+                course_json["surfaceSplines"].append(newCartPath(nds))
+            elif golf_type == "path":
+                course_json["surfaceSplines"].append(newWalkingPath(nds))
             elif golf_type == "hole":
                 par = int(way.tags.get("par", -1))
                 hole_num = int(way.tags.get("ref", -1))
