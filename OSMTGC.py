@@ -187,6 +187,12 @@ def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0, pr
     ul_tgc = geopointcloud.enuToTGC(*ul_enu, 0.0)
     lr_tgc = geopointcloud.enuToTGC(*lr_enu, 0.0)
 
+    # Clear splines?  Make this optional
+    course_json["surfaceSplines"] = []
+
+    # Game will crash if more than 18 holes found, so always clear holes
+    course_json["holes"] = []
+
     hole_dictionary = dict() # Holes must be ordered by hole_num.  Must keep track of return order just in case data doesn't have hole number
     for way in ways:
         golf_type = way.tags.get("golf", None)
