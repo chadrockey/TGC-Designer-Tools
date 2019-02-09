@@ -242,17 +242,40 @@ def tkinterPrintFunction(root, textfield, message):
     textfield.see(tk.END)
     root.update()
 
-def runLidar(printf):
+def runLidar(scale_entry, epsg_entry, unit_entry, printf):
     global root
 
     if not root or not hasattr(root, 'filename'):
         alert("Select a course directory before processing lidar files")
         return
 
-    sample_scale = 2.0
+    try:
+        sample_scale = float(scale_entry.get())
+    except:
+        alert("No action taken: Could not get valid resolution from entry")
+        return
+
+    force_epsg = None
+    try:
+        epsg_raw = epsg_entry.get()
+        if epsg_raw: # Don't process empty string
+            force_epsg = int(epsg_raw)
+    except:
+        alert("No action taken: Could not get valid force epsg from entry")
+        return
+
+    force_unit = None
+    try:
+        unit_raw = unit_entry.get()
+        if unit_raw: # Don't process empty string
+            force_unit = float(unit_raw)
+    except:
+        alert("No action taken: Could not get valid force unit from entry")
+        return
 
     lidar_dir_path = tk.filedialog.askdirectory(initialdir=root.filename, title="Select las/laz files directory")
-    lidar_map_api.generate_lidar_previews(lidar_dir_path, sample_scale, root.filename, printf=printf)
+    if lidar_dir_path:
+        lidar_map_api.generate_lidar_previews(lidar_dir_path, sample_scale, root.filename, force_epsg=force_epsg, force_unit=force_unit, printf=printf)
 
 root = tk.Tk()
 root.geometry("800x600")
@@ -363,9 +386,29 @@ root.update()
 ## Lidar panel
 consoleOutput = tk.scrolledtext.ScrolledText(master=lidar, wrap=tk.WORD, width=20, height=10, state=DISABLED)
 printf = partial(tkinterPrintFunction, lidar, consoleOutput)
-lidarbutton = Button(lidar, text="Generate Heightmap from Lidar", command=partial(runLidar, printf))
 
-lidarbutton.pack(pady=10)
+lidarControlFrame = Frame(lidar, bg=tool_bg)
+
+scale_label = Label(lidarControlFrame, text="Map Resolution", fg=text_fg, bg=tool_bg)
+scale_entry = tk.Entry(lidarControlFrame, width=8, justify='center')
+scale_entry.insert(END, 2.0)
+epsg_label = Label(lidarControlFrame, text="Force Lidar EPSG Projection", fg=text_fg, bg=tool_bg)
+epsg_entry = tk.Entry(lidarControlFrame, width=8, justify='center')
+epsg_entry.insert(END, "")
+lidar_unit_label = Label(lidarControlFrame, text="Force Lidar Unit", fg=text_fg, bg=tool_bg)
+lidar_unit_entry = tk.Entry(lidarControlFrame, width=8, justify='center')
+lidar_unit_entry.insert(END, "")
+lidarbutton = Button(lidarControlFrame, text="Generate Heightmap from Lidar", command=partial(runLidar, scale_entry, epsg_entry, lidar_unit_entry, printf))
+
+scale_label.pack(side=LEFT, padx=5)
+scale_entry.pack(side=LEFT, padx=5)
+epsg_label.pack(side=LEFT, padx=5)
+epsg_entry.pack(side=LEFT, padx=5)
+lidar_unit_label.pack(side=LEFT, padx=5)
+lidar_unit_entry.pack(side=LEFT, padx=5)
+lidarbutton.pack(side=LEFT, padx=5, pady=5)
+
+lidarControlFrame.pack(pady=5)
 consoleOutput.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
 
 

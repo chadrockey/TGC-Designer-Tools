@@ -23,6 +23,7 @@ class GeoPointCloud:
         self._zmax = None
         self._width = None
         self._height = None
+        self._count = None
 
     def points(self):
         return self.point_matrix
@@ -84,6 +85,14 @@ class GeoPointCloud:
     @height.setter
     def height(self, height):
         self._height = height
+
+    @property
+    def count(self):
+        if not self._count:
+            if self.point_matrix is None:
+                return 0
+            self._count = len(self.point_matrix)
+        return self._count
 
     @property
     def proj(self):

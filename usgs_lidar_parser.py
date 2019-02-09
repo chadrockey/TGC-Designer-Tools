@@ -101,9 +101,6 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
             if force_epsg is not None:
                 proj, unit = proj_from_epsg(force_epsg, printf=printf)
 
-            if force_unit is not None:
-                unit = float(force_unit)
-
             # Try to get projection data from laspy
             for v in f.header.vlrs:
                 # Parse the .prj contents in the metadata, look for WKT
@@ -258,7 +255,11 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
             if proj is None:
                 return print_failure_message(printf=printf)
 
-            printf("Unit in metadata is " + str(unit))
+            # Need to overwrite unit last for situations where projection is not overwritten
+            if force_unit is not None:
+                unit = float(force_unit)
+
+            printf("Unit in use is " + str(unit))
             printf("Proj4 : " + str(proj))
 
             scaled_x = f.x*unit
@@ -287,6 +288,11 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                     converted_z.append(z2)
 
             pc.addDataSet(numpy.array(converted_x), numpy.array(converted_y), numpy.array(converted_z), numpy.array(f.intensity), numpy.array(f.classification).astype(int))
+
+    if not pc.count:
+        printf("No valid lidar files found, no action taken")
+        printf("Directory was: " + d)
+        return None
 
     pc.computeOrigin()
     pc.removeBias()
