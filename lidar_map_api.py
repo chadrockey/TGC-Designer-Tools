@@ -303,11 +303,15 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
         else: # Shrink width
             req_width = int(1500.0*float(image_width)/float(image_height))
 
-        img_url_request = "https://open.mapquestapi.com/staticmap/v5/map?key=" + mapquest_api_key + "&scalebar=true&format=png&center=" + \
+        img_url_request = "https://open.mapquestapi.com/staticmap/v5/map?key=MAPQUEST_API_KEY&scalebar=true&format=png&center=" + \
                                 str(gps_center[0]) + "," + str(gps_center[1]) + \
                                 "&type=hyb&zoom=" + str(zoom_level) + "&size=" + str(req_width) + "," + str(req_height)
 
         printf("Mapquest Image URL Request: " + img_url_request)
+
+        # Don't print the Mapquest API Key to users
+        img_url_request = img_url_request.replace("MAPQUEST_API_KEY", mapquest_api_key)
+
         try:
             # TODO switch to requests ?
             with urllib.request.urlopen(img_url_request) as url:
