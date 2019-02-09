@@ -79,16 +79,6 @@ def newSpline(points, handle_length, tight_splines=True):
 
     return spline
 
-def newGreen(points):
-    green = newSpline(points, 0.2)
-
-    # Green is surface 1
-    # Add secondarySurface 11
-    green["surface"] = 1
-    green["secondarySurface"] = 11
-    green["secondaryWidth"] = 0.4
-    return green
-
 def newBunker(points):
     bunker = newSpline(points, 1.0)
 
@@ -99,6 +89,16 @@ def newBunker(points):
     bunker["secondarySurface"] = 4
     bunker["secondaryWidth"] = 0.3
     return bunker
+
+def newGreen(points):
+    green = newSpline(points, 0.2)
+
+    # Green is surface 1
+    # Add secondarySurface 11
+    green["surface"] = 1
+    green["secondarySurface"] = 11
+    green["secondaryWidth"] = 0.4
+    return green
 
 def newTeeBox(points):
     teebox = newSpline(points, 0.2) # Smooth Teeboxes a lot
@@ -133,35 +133,56 @@ def newRough(points):
     rh["secondaryWidth"] = 0.0
     return rh
 
-def newCartPath(points):
+def newHeavyRough(points):
+    hr = newSpline(points, 0.2)
+
+    # Heavy Rough is surface 4
+    # Game outputs secondary as 1
+    # Remove with 0 width
+    hr["surface"] = 4
+    hr["secondarySurface"] = 1
+    hr["secondaryWidth"] = 0.0
+    return hr
+
+def newCartPath(points, area=False):
     cp = newSpline(points, 4.0, tight_splines=False) # Smooth a lot
 
-    # Cartpath is surface ???
-    # Game outputs secondary as ???
-    # Remove with 0 width
-    cp["surface"] = 7
+    # Cartpath is surface 10 (this is the one with Cartpath logo in Designer)
+    # Remove secondary with 0 width
+    cp["surface"] = 10 # 10 is Cartpath, Surface #3
     cp["secondarySurface"] = 11
     cp["secondaryWidth"] = 0.0
     cp["width"] = 2.0
     # 0 is 'not closed' and 3 is 'closed and filled' maybe a bitmask?
-    cp["state"] = 0 # Todo figure out what this means
-    cp["isClosed"] = False
-    cp["isFilled"] = False
+    if area:
+        cp["state"] = 3
+        cp["isClosed"] = True
+        cp["isFilled"] = True
+    else:
+        cp["state"] = 0 # Todo figure out what this means
+        cp["isClosed"] = False
+        cp["isFilled"] = False
+
     return cp
 
-def newWalkingPath(points):
+def newWalkingPath(points, area=False):
     wp = newSpline(points, 2.0, tight_splines=False)
 
-    # Make walking paths fairway?
-    # Game outputs secondary as ???
-    # Remove with 0 width
-    wp["surface"] = 2
+    # Make walking paths Surface #1 for visibility
+    # User can switch to green/fairway/rough depending on taste
+    # Remove secondary with 0 width
+    wp["surface"] = 7 
     wp["secondarySurface"] = 3
     wp["secondaryWidth"] = 0.0
-    wp["width"] = 1.0
-    wp["state"] = 0 # Todo figure out what this means
-    wp["isClosed"] = False
-    wp["isFilled"] = False
+    wp["width"] = 1.55 # 1.55 meter (1.7 yards) is the minimum path width that will render
+    if area:
+        wp["state"] = 3
+        wp["isClosed"] = True
+        wp["isFilled"] = True
+    else:
+        wp["state"] = 0 # Todo figure out what this means
+        wp["isClosed"] = False
+        wp["isFilled"] = False
     return wp
 
 def newWaterHazard(points):
@@ -169,7 +190,7 @@ def newWaterHazard(points):
     # Add spline and fill with black mulch
     wh = newSpline(points, 0.2)
 
-    # Fill as mulch as a placeholder
+    # Fill as mulch/surface #2 as a placeholder
     wh["surface"] = 8
     wh["secondarySurface"] = 11
     wh["secondaryWidth"] = 0.0
@@ -229,6 +250,11 @@ def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0, pr
     hole_dictionary = dict() # Holes must be ordered by hole_num.  Must keep track of return order just in case data doesn't have hole number
     for way in ways:
         golf_type = way.tags.get("golf", None)
+        area = False
+        try:
+            area = "yes" == way.tags.get("area", None)
+        except:
+            pass
         if golf_type is not None:
             # Get the shape of this way and draw it as a poly
             nds = []
@@ -250,14 +276,16 @@ def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0, pr
                 course_json["surfaceSplines"].append(newTeeBox(nds))
             elif golf_type == "fairway":
                 course_json["surfaceSplines"].append(newFairway(nds))
+            elif golf_type == "driving_range": # Add as fairway
+                course_json["surfaceSplines"].append(newFairway(nds))
             elif golf_type == "rough":
                 course_json["surfaceSplines"].append(newRough(nds))
             elif golf_type == "water_hazard" or golf_type == "lateral_water_hazard":
                 course_json["surfaceSplines"].append(newWaterHazard(nds))
             elif golf_type == "cartpath":
-                course_json["surfaceSplines"].append(newCartPath(nds))
+                course_json["surfaceSplines"].append(newCartPath(nds, area=area))
             elif golf_type == "path":
-                course_json["surfaceSplines"].append(newWalkingPath(nds))
+                course_json["surfaceSplines"].append(newWalkingPath(nds, area=area))
             elif golf_type == "hole":
                 par = int(way.tags.get("par", -1))
                 hole_num = int(way.tags.get("ref", -1))

@@ -59,6 +59,10 @@ def processTerrain(course_json, im, pc, image_scale):
 def processSplines(course_json, im, pc, image_scale):
     ss = course_json["surfaceSplines"]
 
+    # Mulch/Water Visualization Surface #2 has low priority, so draw it first
+    # Drawing as the black/dark blue, but it will show up different depending on scene
+    drawSplinesOnImage([s for s in ss if s["surface"] == 8], (0.1, 0.2, 0.25), im, pc, image_scale)
+
     # First draw heavy rough
     drawSplinesOnImage([s for s in ss if s["surface"] == 4], (0, 0.3, 0.1), im, pc, image_scale)
 
@@ -72,10 +76,16 @@ def processSplines(course_json, im, pc, image_scale):
     drawSplinesOnImage([s for s in ss if s["surface"] == 1], (0, 1.0, 0.2), im, pc, image_scale) 
 
     # Next draw bunkers
-    drawSplinesOnImage([s for s in ss if s["surface"] == 0], (0.85, 0.85, 0.7), im, pc, image_scale) 
+    drawSplinesOnImage([s for s in ss if s["surface"] == 0], (0.85, 0.85, 0.7), im, pc, image_scale)
+
+    # Surface #1 - Gravel?
+    drawSplinesOnImage([s for s in ss if s["surface"] == 7], (0.7, 0.7, 0.7), im, pc, image_scale)
+
+    # Surface #3 Cart Path
+    drawSplinesOnImage([s for s in ss if s["surface"] == 10], (0.3, 0.3, 0.3), im, pc, image_scale)
 
     # Next draw everything else in a cart-path like texture
-    drawSplinesOnImage([s for s in ss if s["surface"] not in [0, 1, 2, 3, 4]], (0.6, 0.6, 0.6), im, pc, image_scale) 
+    drawSplinesOnImage([s for s in ss if s["surface"] not in [0, 1, 2, 3, 4, 7, 8, 10]], (0.6, 0.6, 0.6), im, pc, image_scale) 
 
 def drawCourseAsImage(course_json):
     im = np.zeros((2000, 2000, 3), np.float32) # Courses are 2000m x 2000m
