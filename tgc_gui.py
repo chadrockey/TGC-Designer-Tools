@@ -251,7 +251,7 @@ def runLidar(printf):
 
     sample_scale = 2.0
 
-    lidar_dir_path = tk.filedialog.askdirectory(initialdir = ".", title = "Select las/laz files directory")
+    lidar_dir_path = tk.filedialog.askdirectory(initialdir=root.filename, title="Select las/laz files directory")
     lidar_map_api.generate_lidar_previews(lidar_dir_path, sample_scale, root.filename, printf=printf)
 
 root = tk.Tk()

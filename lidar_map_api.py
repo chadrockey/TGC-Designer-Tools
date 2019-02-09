@@ -225,7 +225,7 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, print
     image_width = math.ceil(pc.width/sample_scale)+1 # If image is exact multiple, then need one more pixel.  Example: 1500m -> 750 pixels, @1500, 750 isn't a valid pixel otherwise
     image_height = math.ceil(pc.height/sample_scale)+1
 
-    printf("Generating brightness and height images")
+    printf("Generating lidar intensity image")
     im = np.full((image_height,image_width,1), -1.0, np.float32)
 
     img_points = pc.pointsAsCV2(sample_scale)
@@ -311,7 +311,7 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, print
 
             nparr = np.frombuffer(map_image, np.uint8)
             im_map = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            #im_map = cv2.cvtColor(im_map, cv2.COLOR_BGR2RGB)
+            im_map = cv2.cvtColor(im_map, cv2.COLOR_BGR2RGB)
         except urllib.error.HTTPError as err:
             printf("Could not get sat preview: " + str(err))
 
