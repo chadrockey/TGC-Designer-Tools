@@ -92,18 +92,17 @@ def unpack_course_file(course_directory, course_file=None):
 
 def pack_course_file(course_directory, course_name=None, output_file=None, course_json=None):
     course_dir = Path(course_directory)
-    output_dir = create_export_directory(course_directory)
 
     output_path = None
     if output_file is not None:
         output_path = Path(output_file)
-    if output_path is None:
+    else:
         if course_name is None:
             course_name = get_course_name(course_directory)
             if course_name is None:
                 # Nothing found, just use 'output.course'
                 course_name = 'output'
-        output_path = output_dir / (course_name + '.course')
+        output_path = course_dir / (course_name + '.course')
 
     print("Saving course as: " + str(output_path))
 
