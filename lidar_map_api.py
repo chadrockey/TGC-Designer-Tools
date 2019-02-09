@@ -214,13 +214,17 @@ def request_course_outline(course_image, sat_image=None, bundle=None, printf=pri
     popup.mainloop()
 
 
-def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, printf=print):
+def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force_epsg=None, force_unit=None, printf=print):
     # Create directory for intermediate files
     printf("Creating output directory at " + str(output_dir_path))
     tgc_tools.create_lidar_directory(output_dir_path)
 
     # Use provided las or get las files
-    pc = load_usgs_directory(lidar_dir_path, printf=printf)
+    pc = load_usgs_directory(lidar_dir_path, force_epsg=force_epsg, force_unit=force_unit, printf=printf)
+
+    if pc is None:
+        # Can't do anything with nothing
+        return
 
     image_width = math.ceil(pc.width/sample_scale)+1 # If image is exact multiple, then need one more pixel.  Example: 1500m -> 750 pixels, @1500, 750 isn't a valid pixel otherwise
     image_height = math.ceil(pc.height/sample_scale)+1
@@ -426,12 +430,20 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
 if __name__ == "__main__":
     keywords = []
     if len(sys.argv) < 4:
-        print("Usage: python program.py LAS_DIRECTORY OUTPUT_DIRECTORY METERS_PER_PIXEL")
+        print("Usage: python program.py LAS_DIRECTORY OUTPUT_DIRECTORY METERS_PER_PIXEL [FORCE_EPSG] [FORCE_UNIT]")
         sys.exit(0)
     else:
         lidar_dir_path = sys.argv[1]
         output_dir = sys.argv[2]
         meters_per_pixel = float(sys.argv[3])
+        try:
+            force_epsg = int(sys.argv[4])
+        except:
+            force_epsg = None
+        try:
+            force_unit = float(sys.argv[5])
+        except:
+            force_unit = None
 
     running_as_main = True
-    generate_lidar_previews(lidar_dir_path, meters_per_pixel, output_dir)
+    generate_lidar_previews(lidar_dir_path, meters_per_pixel, output_dir, force_epsg=force_epsg, force_unit=force_unit)

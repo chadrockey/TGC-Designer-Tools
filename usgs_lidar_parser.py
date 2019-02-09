@@ -17,6 +17,24 @@ import yaml
 
 from GeoPointCloud import *
 
+def get_proj_and_unit_from_crs(crs, epsg=None, printf=print):
+    unit = crs.toplevel.unit.metermultiplier.value
+    # Scale the false easting and northing to meters
+    # pyproj assumes meters and doesn't convert the falses correctly
+    for p in crs.toplevel.params:
+        if p.proj4 == '+x_0' or p.proj4 == '+y_0':
+            p.value *= unit
+    # Now that we've stored the unit value, set to to 1.0 to work around pyproj bugs
+    crs.toplevel.unit.metermultiplier.value = 1.0
+    if epsg is not None:
+        printf("Overwriting projection with EPSG:" + str(epsg))
+        # pyrpoj doesn't like these wkt sometimes, so use the epsg directly
+        # But use unit from crs
+        proj = pyproj.Proj(init='epsg:'+str(epsg))
+    else:
+        proj = pyproj.Proj(crs.to_proj4())
+    return (proj, unit)
+
 def wkt_to_epsg(wkt, printf=print):
     '''
     Function borrowed from https://github.com/cmollet/sridentify, don't want or need the local database aspects
@@ -51,26 +69,18 @@ def wkt_to_epsg(wkt, printf=print):
         return int(resp['codes'][0]['code'])
     return None
 
-def get_proj_and_unit_from_crs(crs, epsg=None, printf=print):
-    unit = crs.toplevel.unit.metermultiplier.value
-    # Scale the false easting and northing to meters
-    # pyproj assumes meters and doesn't convert the falses correctly
-    for p in crs.toplevel.params:
-        if p.proj4 == '+x_0' or p.proj4 == '+y_0':
-            p.value *= unit
-    # Now that we've stored the unit value, set to to 1.0 to work around pyproj bugs
-    crs.toplevel.unit.metermultiplier.value = 1.0
-    if epsg is not None:
-        printf("Overwriting projection with EPSG:" + str(epsg))
-        # pyrpoj doesn't like these wkt sometimes, so use the epsg directly
-        # But use unit from crs
-        proj = pyproj.Proj(init='epsg:'+str(epsg))
-    else:
-        proj = pyproj.Proj(crs.to_proj4())
-    return (proj, unit)
+def proj_from_epsg(epsg, printf=print):
+    # Try to get WKT for these epsg codes from webservices, need this to get a definite value for unit
+    epsg_json = requests.get('http://prj2epsg.org/epsg/' + str(epsg) + '.json').json()
+    crs = pycrs.parser.from_unknown_text(epsg_json['wkt'])
+    return get_proj_and_unit_from_crs(crs, epsg=epsg, printf=printf)
 
+def print_failure_message(printf=print):
+    printf("Could not determine lidar projection, please report an issue and send this lidar and metadata")
+    printf("Alternatively, look for something called EPSG Value in Metadata and provide EPSG and Conversion to Meters (1.0 for Meters, Approximately 0.3048 for Feet")
+    return None
 
-def load_usgs_directory(d, printf=print):
+def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
     pc = GeoPointCloud()
 
     # Add current directory to os path to find laszip-cli for laz files
@@ -87,6 +97,12 @@ def load_usgs_directory(d, printf=print):
             # Needed from metadata for all files
             proj = None
             unit = 0.0 # Don't assume unit
+
+            if force_epsg is not None:
+                proj, unit = proj_from_epsg(force_epsg, printf=printf)
+
+            if force_unit is not None:
+                unit = float(force_unit)
 
             # Try to get projection data from laspy
             for v in f.header.vlrs:
@@ -114,11 +130,8 @@ def load_usgs_directory(d, printf=print):
                             key = v.parsed_body[4 + 4*i]
                             value_offset = v.parsed_body[7 + 4*i]
                             try:
-                                # Try to get WKT for these epsg codes from webservices, need this to get a definite value for unit
-                                epsg_json = requests.get('http://prj2epsg.org/epsg/' + str(value_offset) + '.json').json()
-                                crs = pycrs.parser.from_unknown_text(epsg_json['wkt'])
+                                proj, unit = proj_from_epsg(value_offset, printf=printf)
                                 printf("Found EPSG from lidar file: " + str(value_offset))
-                                proj, unit = get_proj_and_unit_from_crs(crs, epsg=value_offset, printf=printf)
                                 break
                             except:
                                 pass
@@ -197,8 +210,7 @@ def load_usgs_directory(d, printf=print):
                     elif unit_name == 'foot': # International Foot
                         unit = 0.3048
                     else:
-                        printf('Unknown unit: ' + unit_name + ".  Can't process data accurately, please report an issue and send this lidar and metadata")
-                        unit = 1.0 # Maybe it's meters and we'll get lucky
+                        return print_failure_message(printf=printf)
 
                 # Continue to look for Metadata
                 if proj is None:
@@ -242,6 +254,9 @@ def load_usgs_directory(d, printf=print):
                     if not None in [semiaxis, denflat, sfctrmer, feast, fnorth, meridian, latprj]:
                         printf("Found Projection Parameters from metadata file")
                         proj = pyproj.Proj(proj=sys, datum=datum, ellps=ellips, a=semiaxis, f=denflat, k=sfctrmer, x_0=feast, y_0=fnorth, lon_0=meridian, lat_0=latprj, units='m', axis='enu')
+
+            if proj is None:
+                return print_failure_message(printf=printf)
 
             printf("Unit in metadata is " + str(unit))
             printf("Proj4 : " + str(proj))
