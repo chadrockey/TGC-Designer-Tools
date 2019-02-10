@@ -65,8 +65,29 @@ def get_unit_multiplier_from_epsg(epsg):
         pass
     return 0.0
 
+# Some of the epsgs found in lidar files don't represent projected coordinate systems
+# but are instead the datum or other geographic reference systems
+def is_epsg_datum(epsg):
+    # It looks like these are all in the 4000 to 42NN range.
+    # I can't determine which are valid, so I'm going to convert from meters to degrees
+    # If it's degrees to degrees, it won't modify the number
+    # The coordinate systems we will look for are limited between -180.0 and 180.0 output
+    meter_proj = pyproj.Proj(init='epsg:'+str(epsg), preserve_units=False) # Forces meter
+    degree_proj = pyproj.Proj(proj='latlong', datum='WGS84')
+    try:
+        scale_value = 1.0e6
+        x2, y2 = pyproj.transform(meter_proj, degree_proj, scale_value, 0.0)
+        return math.isclose(scale_value, x2, abs_tol=1.0) # Should be very different
+    except:
+        pass
+    return True # Invalidate this EPSG if it can't be determined or used
+
 def get_proj_and_unit_from_wkt(wkt, printf=print):
     epsg = wkt_to_epsg(wkt, printf=printf) # Use epsg whenever possible
+    if is_epsg_datum(epsg):
+        # Not the right kind of coordinate reference system
+        printf("EPSG is not map projection, skipping: " + str(epsg))
+        return None, 0.0
     if epsg is not None:
         printf("Overwriting projection with EPSG:" + str(epsg))
         proj = pyproj.Proj(init='epsg:'+str(epsg))
@@ -115,8 +136,9 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                     for t in str(v.parsed_body[0]).split('\\n'):
                         try:
                             proj, unit = get_proj_and_unit_from_wkt(t, printf=printf)
-                            printf("Found WKT Projection from lidar file")
-                            break
+                            if proj is not None:
+                                printf("Found WKT Projection from lidar file")
+                                break
                         except:
                             pass
                 except:
@@ -131,8 +153,9 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                             value_offset = v.parsed_body[7 + 4*i]
                             try:
                                 proj, unit = proj_from_epsg(value_offset, printf=printf)
-                                printf("Found EPSG from lidar file: " + str(value_offset))
-                                break
+                                if proj is not None:
+                                    printf("Found EPSG from lidar file: " + str(value_offset))
+                                    break
                             except:
                                 pass
                     except:
