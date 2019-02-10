@@ -7,7 +7,6 @@ import numpy
 import os
 import requests
 from pathlib import Path
-import pycrs
 from urllib.request import urlopen, HTTPError
 from urllib.parse import urlencode
 import xml.etree.ElementTree as ET
@@ -16,24 +15,6 @@ import pyproj
 import yaml
 
 from GeoPointCloud import *
-
-def get_proj_and_unit_from_crs(crs, epsg=None, printf=print):
-    unit = crs.toplevel.unit.metermultiplier.value
-    # Scale the false easting and northing to meters
-    # pyproj assumes meters and doesn't convert the falses correctly
-    for p in crs.toplevel.params:
-        if p.proj4 == '+x_0' or p.proj4 == '+y_0':
-            p.value *= unit
-    # Now that we've stored the unit value, set to to 1.0 to work around pyproj bugs
-    crs.toplevel.unit.metermultiplier.value = 1.0
-    if epsg is not None:
-        printf("Overwriting projection with EPSG:" + str(epsg))
-        # pyrpoj doesn't like these wkt sometimes, so use the epsg directly
-        # But use unit from crs
-        proj = pyproj.Proj(init='epsg:'+str(epsg))
-    else:
-        proj = pyproj.Proj(crs.to_proj4())
-    return (proj, unit)
 
 def wkt_to_epsg(wkt, printf=print):
     '''
@@ -69,11 +50,35 @@ def wkt_to_epsg(wkt, printf=print):
         return int(resp['codes'][0]['code'])
     return None
 
+def get_unit_multiplier_from_epsg(epsg):
+    # Can't find any lightweight way to do this, but I depend heavily on pyproj right now
+    # Until there's a better way, get the unit by converting (1,0) from 'unit' to 'meter'
+    meter_proj = pyproj.Proj(init='epsg:'+str(epsg), preserve_units=False) # Forces meter
+    unit_proj = pyproj.Proj(init='epsg:'+str(epsg), preserve_units=True) # Stays in native unit
+    try:
+        # Due to numerical precision and the requirements for foot vs survey foot
+        # Use a larger number for the transform
+        scale_value = 1.0e6
+        x2, y2 = pyproj.transform(unit_proj, meter_proj, scale_value, 0.0)
+        return x2/scale_value
+    except:
+        pass
+    return 0.0
+
+def get_proj_and_unit_from_wkt(wkt, printf=print):
+    epsg = wkt_to_epsg(wkt, printf=printf) # Use epsg whenever possible
+    if epsg is not None:
+        printf("Overwriting projection with EPSG:" + str(epsg))
+        proj = pyproj.Proj(init='epsg:'+str(epsg))
+        unit = get_unit_multiplier_from_epsg(epsg)
+        return (proj, unit)
+    printf("EPSG not found for WKT: \n" + wkt + "\n")
+    return None, 0.0
+
 def proj_from_epsg(epsg, printf=print):
     # Try to get WKT for these epsg codes from webservices, need this to get a definite value for unit
     epsg_json = requests.get('http://prj2epsg.org/epsg/' + str(epsg) + '.json').json()
-    crs = pycrs.parser.from_unknown_text(epsg_json['wkt'])
-    return get_proj_and_unit_from_crs(crs, epsg=epsg, printf=printf)
+    return get_proj_and_unit_from_wkt(epsg_json['wkt'], printf=printf)
 
 def print_failure_message(printf=print):
     printf("Could not determine lidar projection, please report an issue and send this lidar and metadata")
@@ -109,10 +114,8 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                         break
                     for t in str(v.parsed_body[0]).split('\\n'):
                         try:
-                            crs = pycrs.parser.from_unknown_text(t)
+                            proj, unit = get_proj_and_unit_from_wkt(t, printf=printf)
                             printf("Found WKT Projection from lidar file")
-                            epsg = wkt_to_epsg(t, printf=printf) # Use epsg whenever possible
-                            proj, unit = get_proj_and_unit_from_crs(crs, epsg=epsg, printf=printf)
                             break
                         except:
                             pass
@@ -175,10 +178,8 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
 
                     # Parse the .prj contents in the metadata
                     try:
-                        crs = pycrs.parser.from_unknown_text(supp_json['mapProjectionDefinitionField'])
+                        proj, unit = get_proj_and_unit_from_wkt(supp_json['mapProjectionDefinitionField'], printf=printf)
                         printf("Found WKT from metadata file")
-                        epsg = wkt_to_epsg(supp_json['mapProjectionDefinitionField'], printf=printf) # Use epsg whenever possible
-                        proj, unit = get_proj_and_unit_from_crs(crs, epsg=epsg, printf=printf)
                     except:
                         pass
 
@@ -186,10 +187,8 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                 if proj is None:
                     # Get the .prj contents
                     for c in root.findall('MapProjectionDefinition'):
-                        crs = pycrs.parser.from_unknown_text(c.text)
+                        proj, unit = get_proj_and_unit_from_wkt(c.text, printf=printf)
                         printf("Found PRJ WKT from metadata file")
-                        epsg = wkt_to_epsg(c.text, printf=printf) # Use epsg whenever possible
-                        proj, unit = get_proj_and_unit_from_crs(crs, epsg=epsg, printf=printf)
 
                 # If unit not in CRS, try to find it in a tag
                 if unit == 0.0:
