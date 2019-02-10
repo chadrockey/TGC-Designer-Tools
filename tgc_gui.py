@@ -430,7 +430,7 @@ epsg_entry.insert(END, "")
 lidar_unit_label = Label(lidarControlFrame, text="Force Lidar Unit", fg=text_fg, bg=tool_bg)
 lidar_unit_entry = tk.Entry(lidarControlFrame, width=8, justify='center')
 lidar_unit_entry.insert(END, "")
-lidarbutton = Button(lidarControlFrame, text="Generate Heightmap from Lidar", command=partial(runLidar, scale_entry, epsg_entry, lidar_unit_entry, lidarPrintf))
+lidarbutton = Button(lidarControlFrame, text="Select Lidar and Generate Heightmap", command=partial(runLidar, scale_entry, epsg_entry, lidar_unit_entry, lidarPrintf))
 
 scale_label.pack(side=LEFT, padx=5)
 scale_entry.pack(side=LEFT, padx=5)
