@@ -325,12 +325,23 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
     request_course_outline(im, im_map, bundle=(pc, img_points, sample_scale, output_dir_path, result), printf=printf)
 
 def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_results=None, printf=print):
+    global lower_x
+    global lower_y
+    global upper_x
+    global upper_y
     image_width = math.ceil(pc.width/sample_scale)+1 # If image is exact multiple, then need one more pixel.  Example: 1500m -> 750 pixels, @1500, 750 isn't a valid pixel otherwise
     image_height = math.ceil(pc.height/sample_scale)+1
 
     printf("Generating heightmap")
     om = np.full((image_height,image_width,1), -1.0, np.float32)
     high_res_visual = np.full((image_height,image_width,1), -1.0, np.float32)
+
+    # Make sure selected limits are in bounds, otherwise limit them
+    # This can happen if the rectangle goes outside the image
+    lower_x = max(0, lower_x)
+    lower_y = max(0, lower_y)
+    upper_x = min(image_width, upper_x)
+    upper_y = min(image_height, upper_y)
 
     ## Start cropping data and saving it for future steps
     # Save only the relevant points from the raw pointcloud
