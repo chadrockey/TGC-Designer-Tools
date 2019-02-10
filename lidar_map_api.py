@@ -216,8 +216,7 @@ def request_course_outline(course_image, sat_image=None, bundle=None, printf=pri
 
 def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force_epsg=None, force_unit=None, printf=print):
     # Create directory for intermediate files
-    printf("Creating output directory at " + str(output_dir_path))
-    tgc_tools.create_lidar_directory(output_dir_path)
+    tgc_tools.create_directory(output_dir_path)
 
     # Use provided las or get las files
     pc = load_usgs_directory(lidar_dir_path, force_epsg=force_epsg, force_unit=force_unit, printf=printf)
@@ -410,8 +409,8 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     imc = imc[lower_y:upper_y, lower_x:upper_x]
     # Need to flip to write to disk in standard image order
     imc = np.flip(imc, 0)
-    printf("Saving mask as: " + str(output_dir_path) + '/lidar/mask.png')
-    cv2.imwrite(output_dir_path + '/lidar/mask.png', cv2.cvtColor(255.0*imc, cv2.COLOR_RGB2BGR)) # not sure why it needs to be 255 scaled, but also needs a differnt colorspace
+    printf("Saving mask as: " + str(output_dir_path) + '/mask.png')
+    cv2.imwrite(output_dir_path + '/mask.png', cv2.cvtColor(255.0*imc, cv2.COLOR_RGB2BGR)) # not sure why it needs to be 255 scaled, but also needs a differnt colorspace
 
     # Prepare nice looking copy of intensity image to save
     high_res_visual = high_res_visual[lower_y:upper_y, lower_x:upper_x]
@@ -426,8 +425,8 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     output_data['image_scale'] = sample_scale
     output_data['origin'] = pc.cv2ToLatLon(lower_y, lower_x, sample_scale) # Origin is lower left corner
     output_data['projection'] = pc.proj
-    printf("Saving data as: " + str(output_dir_path) + '/lidar/heightmap')
-    np.save(output_dir_path + '/lidar/heightmap', output_data) # Save as numpy format since we have raw float elevations
+    printf("Saving data as: " + str(output_dir_path) + '/heightmap.npy')
+    np.save(output_dir_path + '/heightmap', output_data) # Save as numpy format since we have raw float elevations
 
     printf("Done!  Now go edit your mask.png to remove uneeded areas")
 
