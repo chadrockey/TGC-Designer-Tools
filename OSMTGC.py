@@ -231,7 +231,14 @@ def getOSMData(bottom_lat, left_lon, top_lat, right_lon, printf=print):
     printf("OpenStreetMap Overpass query: " + query)
     return op.query(query) # Request both nodes and ways for the region of interest using a union
 
-def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0, printf=print):
+def clearFeatures(course_json):
+    # Clear splines?  Make this optional
+    course_json["surfaceSplines"] = []
+    # Game will crash if more than 18 holes found, so always clear holes
+    course_json["holes"] = []
+    return course_json
+
+def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0, options_dict={}, printf=print):
     # Ways represent features composed of many lat/long points (nodes)
     # We can convert these directly into the game's splines
 
@@ -241,11 +248,7 @@ def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0, pr
     ul_tgc = geopointcloud.enuToTGC(*ul_enu, 0.0)
     lr_tgc = geopointcloud.enuToTGC(*lr_enu, 0.0)
 
-    # Clear splines?  Make this optional
-    course_json["surfaceSplines"] = []
-
-    # Game will crash if more than 18 holes found, so always clear holes
-    course_json["holes"] = []
+    course_json = clearFeatures(course_json)
 
     hole_dictionary = dict() # Holes must be ordered by hole_num.  Must keep track of return order just in case data doesn't have hole number
     for way in ways:
@@ -268,25 +271,26 @@ def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0, pr
                 printf("Golf element : " + golf_type + " is off of map, skipping...")
                 continue
 
-            if golf_type == "green":
+            if golf_type == "green" and options_dict.get('green', True):
                 course_json["surfaceSplines"].append(newGreen(nds))
-            elif golf_type == "bunker":
+            elif golf_type == "bunker" and options_dict.get('bunker', True):
                 course_json["surfaceSplines"].append(newBunker(nds))
-            elif golf_type == "tee":
+            elif golf_type == "tee" and options_dict.get('teebox', True):
                 course_json["surfaceSplines"].append(newTeeBox(nds))
-            elif golf_type == "fairway":
+            elif golf_type == "fairway" and options_dict.get('fairway', True):
                 course_json["surfaceSplines"].append(newFairway(nds))
-            elif golf_type == "driving_range": # Add as fairway
+            elif golf_type == "driving_range" and options_dict.get('range', True):
+                # Add as fairway
                 course_json["surfaceSplines"].append(newFairway(nds))
-            elif golf_type == "rough":
+            elif golf_type == "rough" and options_dict.get('rough', True):
                 course_json["surfaceSplines"].append(newRough(nds))
-            elif golf_type == "water_hazard" or golf_type == "lateral_water_hazard":
+            elif (golf_type == "water_hazard" or golf_type == "lateral_water_hazard") and options_dict.get('water', True):
                 course_json["surfaceSplines"].append(newWaterHazard(nds))
-            elif golf_type == "cartpath":
+            elif golf_type == "cartpath" and options_dict.get('cartpath', True):
                 course_json["surfaceSplines"].append(newCartPath(nds, area=area))
-            elif golf_type == "path":
+            elif golf_type == "path" and options_dict.get('path', True):
                 course_json["surfaceSplines"].append(newWalkingPath(nds, area=area))
-            elif golf_type == "hole":
+            elif golf_type == "hole" and options_dict.get('hole', True):
                 par = int(way.tags.get("par", -1))
                 hole_num = int(way.tags.get("ref", -1))
                 hole = newHole(par, nds)
@@ -295,7 +299,7 @@ def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0, pr
                         hole_num = len(hole_dictionary) + 1
                     hole_dictionary[hole_num] = hole
             else:
-                printf("Unsupported type: " + golf_type)
+                printf("Skipping: " + golf_type)
 
     # Insert all the found holes
     for key in sorted(hole_dictionary):

@@ -75,7 +75,14 @@ def alert(msg):
     label.pack(side="top", fill="x", pady=10)
     B1 = ttk.Button(popup, text="OK", command = popup.destroy)
     B1.pack()
-    popup.mainloop()   
+    popup.mainloop()
+
+def disableAllChildren(var, frame):
+    for child in frame.winfo_children():
+        if var.get(): # Check enabled
+            child['state'] = 'normal'
+        else:
+            child['state'] = 'disable'
 
 course_types = [
     ('Golf Course Files', '*.course'), 
@@ -289,6 +296,12 @@ def generateCourseFromLidar(options_entries_dict, printf):
     # There may be many options for this in the future (which splines to add, clear splines?, flatten fairways/greens, etc) so store efficiently
     options_dict = {}
 
+    # Snapshot the current values of the entries dictionary into the options_dict
+    # We are reusing the same keys, so try not to change them often
+    # All values in the entries_dict must support the get() function
+    for key, entry in options_entries_dict.items():
+        options_dict[key] = entry.get()
+
     heightmap_dir_path = tk.filedialog.askdirectory(initialdir=root.filename, title="Select heightmap and mask files directory")
     if heightmap_dir_path:
         drawPlaceholder()
@@ -430,17 +443,116 @@ lidarbutton.pack(side=LEFT, padx=5, pady=5)
 lidarControlFrame.pack(pady=5)
 lidarConsoleOutput.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
 
-# Import Terrain and Features Tab
+## Import Terrain and Features Tab
 courseConsoleOutput = tk.scrolledtext.ScrolledText(master=course, wrap=tk.WORD, width=20, height=10, state=DISABLED)
 coursePrintf = partial(tkinterPrintFunction, course, courseConsoleOutput)
 
-courseControlFrame = Frame(course, bg=tool_bg)
+courseControlFrame = Frame(course, bg=bg_color)
 
 options_entries_dict = {} # Store the many entries into one dictionary
 
-coursebutton = Button(courseControlFrame, text="Import Heightmap and OSM into Course", command=partial(generateCourseFromLidar, options_entries_dict, coursePrintf))
+# OpenStreetMap Options
+check_fg = "black" # Check fg can't be light or near white or it is invisible in the checkbox
+check_bg = "grey80"
+osmControlFrame = Frame(courseControlFrame, bg=tool_bg)
+osmSubFrame = Frame(osmControlFrame, bg=check_bg) # Can disable all OSM Options easily inside of this
+
+options_entries_dict["use_osm"] = tk.BooleanVar()
+useOSMCheck = Checkbutton(osmControlFrame, text="Import OpenStreetMap", variable=options_entries_dict["use_osm"], fg=check_fg, bg="grey60")
+useOSMCheck['command'] = partial(disableAllChildren, options_entries_dict["use_osm"], osmSubFrame)
+useOSMCheck.select() # Default to Checked
+
+Label(osmSubFrame, text="Fine Shift West->East", fg=check_fg, bg=check_bg).grid(row=0, sticky=W, padx=5)
+Label(osmSubFrame, text="Fine Shift South->North", fg=check_fg, bg=check_bg).grid(row=1, sticky=W, padx=5)
+osmew = tk.Entry(osmSubFrame, width=10, justify='center')
+osmew.insert(END, '0.0')
+options_entries_dict["adjust_ew"] = osmew
+osmns = tk.Entry(osmSubFrame, width=10, justify='center')
+osmns.insert(END, '0.0')
+options_entries_dict["adjust_ns"] = osmns
+
+options_entries_dict["bunker"] = tk.BooleanVar()
+bunkerCheck = Checkbutton(osmSubFrame, text="Import Bunkers", variable=options_entries_dict["bunker"], fg=check_fg, bg=check_bg)
+bunkerCheck.select()
+options_entries_dict["green"] = tk.BooleanVar()
+greenCheck = Checkbutton(osmSubFrame, text="Import Greens", variable=options_entries_dict["green"], fg=check_fg, bg=check_bg)
+greenCheck.select()
+options_entries_dict["fairway"] = tk.BooleanVar()
+fairwayCheck = Checkbutton(osmSubFrame, text="Import Fairways", variable=options_entries_dict["fairway"], fg=check_fg, bg=check_bg)
+fairwayCheck.select()
+options_entries_dict["range"] = tk.BooleanVar()
+rangeCheck = Checkbutton(osmSubFrame, text="Import Driving Ranges", variable=options_entries_dict["range"], fg=check_fg, bg=check_bg)
+rangeCheck.select()
+options_entries_dict["teebox"] = tk.BooleanVar()
+teeboxCheck = Checkbutton(osmSubFrame, text="Import Teeboxes", variable=options_entries_dict["teebox"], fg=check_fg, bg=check_bg)
+teeboxCheck.select()
+options_entries_dict["rough"] = tk.BooleanVar()
+roughCheck = Checkbutton(osmSubFrame, text="Import Rough", variable=options_entries_dict["rough"], fg=check_fg, bg=check_bg)
+roughCheck.select()
+options_entries_dict["water"] = tk.BooleanVar()
+waterCheck = Checkbutton(osmSubFrame, text="Import Water Hazards", variable=options_entries_dict["water"], fg=check_fg, bg=check_bg)
+waterCheck.select()
+options_entries_dict["cartpath"] = tk.BooleanVar()
+cartpathCheck = Checkbutton(osmSubFrame, text="Import Cartpaths", variable=options_entries_dict["cartpath"], fg=check_fg, bg=check_bg)
+cartpathCheck.select()
+options_entries_dict["path"] = tk.BooleanVar()
+pathCheck = Checkbutton(osmSubFrame, text="Import Walking Paths", variable=options_entries_dict["path"], fg=check_fg, bg=check_bg)
+pathCheck.select()
+options_entries_dict["hole"] = tk.BooleanVar()
+holeCheck = Checkbutton(osmSubFrame, text="Import Holes", variable=options_entries_dict["hole"], fg=check_fg, bg=check_bg)
+holeCheck.select()
+
+osmew.grid(row=0, column=1, padx=5)
+osmns.grid(row=1, column=1, padx=5)
+bunkerCheck.grid(row=2, columnspan=2, sticky=W, padx=5)
+greenCheck.grid(row=3, columnspan=2, sticky=W, padx=5)
+fairwayCheck.grid(row=4, columnspan=2, sticky=W, padx=5)
+rangeCheck.grid(row=5, columnspan=2, sticky=W, padx=5)
+teeboxCheck.grid(row=6, columnspan=2, sticky=W, padx=5)
+roughCheck.grid(row=7, columnspan=2, sticky=W, padx=5)
+waterCheck.grid(row=8, columnspan=2, sticky=W, padx=5)
+cartpathCheck.grid(row=9, columnspan=2, sticky=W, padx=5)
+pathCheck.grid(row=10, columnspan=2, sticky=W, padx=5)
+holeCheck.grid(row=11, columnspan=2, sticky=W, padx=5)
+
+useOSMCheck.pack(padx=10, pady=10)
+osmSubFrame.pack(padx=5, pady=5)
+
+coursebutton = Button(courseControlFrame, text="Select and Import Heightmap and OSM into Course", command=partial(generateCourseFromLidar, options_entries_dict, coursePrintf))
+
+# Pack the controls frames, button at the top followed by the options
 coursebutton.pack(padx=10, pady=10)
 
+# Other Course Options
+courseOptionsFrame = Frame(courseControlFrame, bg=tool_bg)
+courseSubFrame = Frame(courseOptionsFrame, bg=check_bg) # Not needed for anything here, but I like the look
+
+Label(courseOptionsFrame, text='Course Options', fg=text_fg, bg=tool_bg).pack(pady=(15,10))
+
+options_entries_dict["flatten_greens"] = tk.BooleanVar()
+fGreenCheck = Checkbutton(courseSubFrame, text="Flatten Greens", variable=options_entries_dict["flatten_greens"], fg=check_fg, bg=check_bg)
+fGreenCheck.deselect() # This option doesn't make lidar look great, but may play better
+options_entries_dict["flatten_fairways"] = tk.BooleanVar()
+fFairwayCheck = Checkbutton(courseSubFrame, text="Flatten Fairways", variable=options_entries_dict["flatten_fairways"], fg=check_fg, bg=check_bg)
+fFairwayCheck.deselect()
+options_entries_dict["auto_elevation"] = tk.BooleanVar()
+elevationCheck = Checkbutton(courseSubFrame, text="Auto Elevation Offset", variable=options_entries_dict["auto_elevation"], fg=check_fg, bg=check_bg)
+elevationCheck.select() # This option doesn't make lidar look great, but may play better
+options_entries_dict["auto_position"] = tk.BooleanVar()
+positionCheck = Checkbutton(courseSubFrame, text="Auto Position and Rotate", variable=options_entries_dict["auto_position"], fg=check_fg, bg=check_bg)
+positionCheck.select()
+
+courseSubFrame.pack(padx=5, pady=5, fill=X, expand=True)
+fGreenCheck.grid(row=0, columnspan=2, sticky=W, padx=5)
+fFairwayCheck.grid(row=1, columnspan=2, sticky=W, padx=5)
+elevationCheck.grid(row=2, columnspan=2, sticky=W, padx=5)
+positionCheck.grid(row=3, columnspan=2, sticky=W, padx=5)
+
+# Pack the two option frames side by side
+osmControlFrame.pack(side=LEFT, anchor=N, padx=5)
+courseOptionsFrame.pack(side=LEFT, anchor=N, padx=5, fill=X, expand=True)
+
+# Pack the big frames side by side
 courseControlFrame.pack(side=LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 courseConsoleOutput.pack(side=LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 

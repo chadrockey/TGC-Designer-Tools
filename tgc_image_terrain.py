@@ -33,7 +33,7 @@ def set_constants(course_json, flatten_fairways=False, flatten_greens=False):
 
     return course_json
 
-def generate_course(course_json, heightmap_dir_path, options_dict=None, printf=print):
+def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=print):
     printf("Loading data from " + heightmap_dir_path)
 
     # See if we need to infill.
@@ -64,7 +64,7 @@ def generate_course(course_json, heightmap_dir_path, options_dict=None, printf=p
     pc.addFromImage(read_dictionary['heightmap'], image_scale, read_dictionary['origin'], read_dictionary['projection'])
 
     # Clear existing terrain
-    course_json = set_constants(course_json)
+    course_json = set_constants(course_json, options_dict.get('flatten_fairways', False), options_dict.get('flatten_greens', False))
     course_json["userLayers"]["height"] = []
     course_json["userLayers"]["terrainHeight"] = []
 
@@ -79,23 +79,27 @@ def generate_course(course_json, heightmap_dir_path, options_dict=None, printf=p
         course_json["userLayers"]["height"].append(get_pixel(x, z, i[2], image_scale))
 
     # Download OpenStreetMaps Data for this smaller area
-    printf("Adding golf features to lidar data")
-    # Use this data to create playable courses automatically
-    upper_left_enu = pc.ulENU()
-    lower_right_enu = pc.lrENU()
-    upper_left_latlon = pc.enuToLatLon(*upper_left_enu)
-    lower_right_latlon = pc.enuToLatLon(*lower_right_enu)
-    # Order is South, West, North, East
-    result = OSMTGC.getOSMData(lower_right_latlon[0], upper_left_latlon[1], upper_left_latlon[0], lower_right_latlon[1], printf=printf)
-    OSMTGC.addOSMToTGC(course_json, pc, result.ways, printf=printf)
+    if options_dict.get('use_osm', True):
+        printf("Adding golf features to lidar data")
+        # Use this data to create playable courses automatically
+        upper_left_enu = pc.ulENU()
+        lower_right_enu = pc.lrENU()
+        upper_left_latlon = pc.enuToLatLon(*upper_left_enu)
+        lower_right_latlon = pc.enuToLatLon(*lower_right_enu)
+        # Order is South, West, North, East
+        result = OSMTGC.getOSMData(lower_right_latlon[0], upper_left_latlon[1], upper_left_latlon[0], lower_right_latlon[1], printf=printf)
+        OSMTGC.addOSMToTGC(course_json, pc, result.ways, x_offset=float(options_dict.get('adjust_ew', 0.0)), y_offset=float(options_dict.get('adjust_ns', 0.0)), \
+                                                         options_dict=options_dict, printf=printf)
 
     # Automatically adjust course elevation
-    printf("Moving course to lowest valid elevation")
-    course_json = tgc_tools.elevate_terrain(course_json, None, printf=printf)
+    if options_dict.get('auto_elevation', True):
+        printf("Moving course to lowest valid elevation")
+        course_json = tgc_tools.elevate_terrain(course_json, None, printf=printf)
 
     # Automatic rotate to fit if needed
-    printf("Adjusting course to fit on map")
-    course_json = tgc_tools.auto_position_course(course_json, printf=printf)
+    if options_dict.get('auto_position', True):
+        printf("Adjusting course to fit on map")
+        course_json = tgc_tools.auto_position_course(course_json, printf=printf)
 
     return course_json
 
