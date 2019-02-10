@@ -530,10 +530,10 @@ courseSubFrame = Frame(courseOptionsFrame, bg=check_bg) # Not needed for anythin
 Label(courseOptionsFrame, text='Course Options', fg=text_fg, bg=tool_bg).pack(pady=(15,10))
 
 options_entries_dict["flatten_greens"] = tk.BooleanVar()
-fGreenCheck = Checkbutton(courseSubFrame, text="Flatten Greens", variable=options_entries_dict["flatten_greens"], fg=check_fg, bg=check_bg)
+fGreenCheck = Checkbutton(courseSubFrame, text="Smooth Greens", variable=options_entries_dict["flatten_greens"], fg=check_fg, bg=check_bg)
 fGreenCheck.deselect() # This option doesn't make lidar look great, but may play better
 options_entries_dict["flatten_fairways"] = tk.BooleanVar()
-fFairwayCheck = Checkbutton(courseSubFrame, text="Flatten Fairways", variable=options_entries_dict["flatten_fairways"], fg=check_fg, bg=check_bg)
+fFairwayCheck = Checkbutton(courseSubFrame, text="Smooth Fairways", variable=options_entries_dict["flatten_fairways"], fg=check_fg, bg=check_bg)
 fFairwayCheck.deselect()
 options_entries_dict["auto_elevation"] = tk.BooleanVar()
 elevationCheck = Checkbutton(courseSubFrame, text="Auto Elevation Offset", variable=options_entries_dict["auto_elevation"], fg=check_fg, bg=check_bg)
