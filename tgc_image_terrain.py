@@ -41,17 +41,21 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
     in_file = Path(heightmap_dir_path) / '/infilled.npy'
 
     if not in_file.exists() or hm_file.stat().st_mtime > in_file.stat().st_mtime:
-        printf("Filling holes in heightmap")
         # Either infilled doesn't exist or heightmap.npy is newer than infilled
-        read_dictionary = np.load(heightmap_dir_path + '/heightmap.npy').item()
-        im = read_dictionary['heightmap'].astype('float32')
+        try:
+            read_dictionary = np.load(heightmap_dir_path + '/heightmap.npy').item()
+            im = read_dictionary['heightmap'].astype('float32')
 
-        mask = cv2.imread(heightmap_dir_path + '/mask.png', cv2.IMREAD_COLOR)
-        # Turn mask into matrix order from image order
-        mask = np.flip(mask, 0)
+            mask = cv2.imread(heightmap_dir_path + '/mask.png', cv2.IMREAD_COLOR)
+            # Turn mask into matrix order from image order
+            mask = np.flip(mask, 0)
 
-        # Process Image
-        out, holeMask = infill_image_scipy(im, mask)
+            # Process Image
+            printf("Filling holes in heightmap")
+            out, holeMask = infill_image_scipy(im, mask)
+        except:
+            printf("Could not find heightmap or mask at: " + heightmap_dir_path)
+            return course_json
 
         # Export data
         read_dictionary['heightmap'] = out
@@ -100,6 +104,8 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
     if options_dict.get('auto_position', True):
         printf("Adjusting course to fit on map")
         course_json = tgc_tools.auto_position_course(course_json, printf=printf)
+
+    printf("Course Description Complete")
 
     return course_json
 

@@ -309,7 +309,7 @@ def generateCourseFromLidar(options_entries_dict, printf):
         drawPlaceholder()
         course_json = tgc_image_terrain.generate_course(course_json, heightmap_dir_path, options_dict=options_dict, printf=printf)
         drawCourse(course_json)
-        printf("Done generating course")
+        printf("Done Rendering Course Preview")
 
 root = tk.Tk()
 root.geometry("800x600")
