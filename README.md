@@ -12,6 +12,8 @@ Patreon is a subscription model that allows communication and continuing support
 
 Github is intended for software developers.  If you just want to run the software, view the latest releases here: [https://github.com/chadrockey/TGC-Designer-Tools/releases](https://github.com/chadrockey/TGC-Designer-Tools/releases)
 
+Be sure to read the Tutorial! [https://chadrockey.github.io/TGC-Designer-Tools/TUTORIAL](https://chadrockey.github.io/TGC-Designer-Tools/TUTORIAL)
+
 Developers and others can look through and run the code.  The main entry points are tgc_gui, lidar_map_api, and tgc_image_terrain.
 
 ------
