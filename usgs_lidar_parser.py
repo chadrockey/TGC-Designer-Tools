@@ -12,7 +12,6 @@ from urllib.parse import urlencode
 import xml.etree.ElementTree as ET
 
 import pyproj
-import yaml
 
 from GeoPointCloud import *
 
@@ -110,7 +109,11 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
     pc = GeoPointCloud()
 
     # Add current directory to os path to find laszip-cli for laz files
-    os.environ["PATH"] += os.pathsep + os.getcwd() + os.pathsep + 'laszip'
+    os.environ["PATH"] += os.pathsep + os.getcwd()
+    # Add ./laszip
+    os.environ["PATH"] += os.pathsep + "." + os.sep + 'laszip'
+    # Add {this_file_location}/laszip for Pyinstaller temp directories
+    os.environ["PATH"] += os.pathsep + os.path.dirname(os.path.realpath(__file__)) + os.sep + 'laszip'
 
     for filename in os.listdir(d):
         # Only parse laz and las files

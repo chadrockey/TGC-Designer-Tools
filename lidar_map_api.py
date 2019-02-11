@@ -11,6 +11,7 @@ from functools import partial
 import json
 import math
 import numpy as np
+import os
 import sys
 import time
 import urllib
@@ -268,7 +269,8 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
     mapquest_api_key = None
     im_map = None
     try:
-        with open("MAPQUEST_API_KEY.txt", "r") as f:
+        this_file_directory = os.path.dirname(os.path.realpath(__file__))
+        with open(this_file_directory + os.sep + "MAPQUEST_API_KEY.txt", "r") as f:
             mapquest_api_key = f.read()
     except:
         pass
