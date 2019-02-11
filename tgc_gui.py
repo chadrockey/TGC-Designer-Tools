@@ -17,6 +17,8 @@ import lidar_map_api
 import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
 
+TGC_GUI_VERSION = "0.0.1"
+
 image_width = 500
 image_height = 500
 
@@ -319,7 +321,7 @@ style.theme_create( "TabStyle", parent="alt", settings={
 
 style.theme_use("TabStyle")
 
-root.title("TGC Golf Tools")
+root.title("TGC Golf Tools " + TGC_GUI_VERSION)
 
 header_frame = Frame(root)
 output = Label(header_frame, background="lightgrey", width=75, height=1)
