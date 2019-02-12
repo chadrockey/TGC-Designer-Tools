@@ -27,14 +27,16 @@ lidar_to_disk = False
 status_print_duration = 1.0 # Print progress every n seconds
 
 # 1 Unassigned
+# 2 Ground
 # 3 Low Vegetation
 # 4 Medium Vegetation
 # 5 High Vegetation
 # 6 Building
 # 7 Noise
+# 8 Model Key Points
 # 9 Water
 
-unwanted_classifications = [1, 3, 4, 5, 6, 7, 9]
+wanted_classifications = [2, 8] # These are considered "bare earth"
 
 # Global Variables for the UI
 rect = None
@@ -359,7 +361,7 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     selected_points = selected_points[np.where(selected_points[:,1] < upper_x)]
 
     # Remove points that aren't useful for ground heightmaps
-    selected_points = selected_points[np.isin(selected_points[:,4], unwanted_classifications, invert=True)]
+    selected_points = selected_points[np.isin(selected_points[:,4], wanted_classifications)]
 
     # Generate heightmap only for the selected area
     num_points = len(selected_points)
