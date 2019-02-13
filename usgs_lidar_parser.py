@@ -179,6 +179,29 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                     except:
                         pass
 
+            # Wasn't in the las files, look for a prj file
+            if proj is None:
+                # Find the PRJ file with the name closest matching to the las/laz
+                highest_match = 0.0
+                prj = None
+                for x in list(Path(d).glob('*.prj')):
+                    score = SequenceMatcher(None, str(filename), str(x)).ratio()
+                    if score > highest_match:
+                        highest_match = score
+                        prj = x
+
+                if prj is not None:
+                    printf("Using PRJ file: " + prj.name)
+
+                    try:
+                        with open(prj, mode='r') as p:
+                            proj, unit = get_proj_and_unit_from_wkt(p.read(), printf=printf)
+                            if proj is not None:
+                                printf("Found WKT Projection from PRJ file")
+                    except:
+                        printf("Could not parse: " + prj)
+                        pass
+
             # Wasn't in the las files, do the difficult search in metadata xmls
             if proj is None:
                 # Find the XML file with the name closest matching to the las/laz
