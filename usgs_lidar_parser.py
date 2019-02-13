@@ -200,7 +200,10 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
 
                 # Get the supplinf tag
                 for supplinf in root.iter('supplinf'):
-                    supp_json = json.loads(supplinf.text.split(';')[0])
+                    try:
+                        supp_json = json.loads(supplinf.text.split(';')[0])
+                    except json.JSONDecodeError:
+                        printf("Could not load supplinf")
 
                     # Parse the .prj contents in the metadata
                     try:
