@@ -51,7 +51,7 @@ def processTerrain(course_json, im, pc, image_scale):
     h = course_json["userLayers"]["height"]
 
     for b in th:
-        drawBrushOnImage(b, (0.5, 0.25, 0.0), im, pc, image_scale)
+        drawBrushOnImage(b, (0.35, 0.2, 0.0), im, pc, image_scale)
 
     for b in h:
         drawBrushOnImage(b, (0.5, 0.2755, 0.106), im, pc, image_scale)
