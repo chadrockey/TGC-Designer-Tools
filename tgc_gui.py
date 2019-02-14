@@ -542,7 +542,7 @@ elevationCheck = Checkbutton(courseSubFrame, text="Auto Elevation Offset", varia
 elevationCheck.select() # This option doesn't make lidar look great, but may play better
 options_entries_dict["auto_position"] = tk.BooleanVar()
 positionCheck = Checkbutton(courseSubFrame, text="Auto Position and Rotate", variable=options_entries_dict["auto_position"], fg=check_fg, bg=check_bg)
-positionCheck.select()
+positionCheck.deselect()
 
 courseSubFrame.pack(padx=5, pady=5, fill=X, expand=True)
 fGreenCheck.grid(row=0, columnspan=2, sticky=W, padx=5)
