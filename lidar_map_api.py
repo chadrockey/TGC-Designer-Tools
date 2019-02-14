@@ -247,7 +247,7 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
     for n, i in enumerate(img_points[0::visible_sampling]):
         if time.time() > last_print_time + status_print_duration:
             last_print_time = time.time()
-            printf(str(int(100.0*float(n*visible_sampling) / num_points)) + "% visualizing lidar")
+            printf(str(round(100.0*float(n*visible_sampling) / num_points, 2)) + "% visualizing lidar")
         im[int(i[0]), int(i[1])] = i[3]
 
     # Download OpenStreetMaps Data
@@ -369,7 +369,7 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     for n, i in enumerate(selected_points[0::lidar_sample]):
         if time.time() > last_print_time + status_print_duration:
             last_print_time = time.time()
-            printf(str(int(100.0*float(n*lidar_sample) / num_points)) + "% generating heightmap")
+            printf(str(round(100.0*float(n*lidar_sample) / num_points, 2)) + "% generating heightmap")
 
         c = (int(i[0]), int(i[1]))
 

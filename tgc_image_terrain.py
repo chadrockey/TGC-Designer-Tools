@@ -4,11 +4,14 @@ import math
 import numpy as np
 from pathlib import Path
 import sys
+import time
 
 from GeoPointCloud import GeoPointCloud
 from infill_image import infill_image_scipy
 import OSMTGC
 import tgc_tools
+
+status_print_duration = 1.0 # Print progress every n seconds
 
 def get_pixel(x_pos, z_pos, height, scale):
     output = json.loads('{"tool":0,"position":{"x":0.0,"y":"-Infinity","z":0.0},"rotation":{"x":0.0,"y":0.0,"z":0.0},"_orientation":0.0,"scale":{"x":1.0, \
@@ -74,10 +77,11 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
 
     # Convert the pointcloud into height elements
     num_points = len(pc.points())
-    progress_interval = int(num_points / 25)
+    last_print_time = 0.0
     for n, i in enumerate(pc.points()):
-        if n % progress_interval == 0:
-            printf(str(int(100.0*float(n) / num_points)) + "% through pointcloud")
+        if time.time() > last_print_time + status_print_duration:
+            last_print_time = time.time()
+            printf(str(round(100.0*float(n) / num_points, 2)) + "% through heightmap")
 
         x, y, z = pc.enuToTGC(i[0], i[1], 0.0) # Don't transform y, it's inverted from elevation
         course_json["userLayers"]["height"].append(get_pixel(x, z, i[2], image_scale))
