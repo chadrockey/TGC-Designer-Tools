@@ -86,6 +86,13 @@ def disableAllChildren(var, frame):
         else:
             child['state'] = 'disable'
 
+    # Also support children directly outside of a frame
+    if len(frame.winfo_children()) == 0:
+        if var.get(): # Check enabled
+            frame['state'] = 'normal'
+        else:
+            frame['state'] = 'disable'
+
 course_types = [
     ('Golf Course Files', '*.course'), 
     ('All files', '*'), 
@@ -423,7 +430,7 @@ lidarPrintf = partial(tkinterPrintFunction, lidar, lidarConsoleOutput)
 
 lidarControlFrame = Frame(lidar, bg=tool_bg)
 
-scale_label = Label(lidarControlFrame, text="Map Resolution", fg=text_fg, bg=tool_bg)
+scale_label = Label(lidarControlFrame, text="Map Scale", fg=text_fg, bg=tool_bg)
 scale_entry = tk.Entry(lidarControlFrame, width=8, justify='center')
 scale_entry.insert(END, 2.0)
 epsg_label = Label(lidarControlFrame, text="Force Lidar EPSG Projection", fg=text_fg, bg=tool_bg)
@@ -543,12 +550,23 @@ elevationCheck.select() # This option doesn't make lidar look great, but may pla
 options_entries_dict["auto_position"] = tk.BooleanVar()
 positionCheck = Checkbutton(courseSubFrame, text="Auto Position and Rotate", variable=options_entries_dict["auto_position"], fg=check_fg, bg=check_bg)
 positionCheck.deselect()
+options_entries_dict["add_background"] = tk.BooleanVar()
+backgroundCheck = Checkbutton(courseSubFrame, text="Add Background Terrain", variable=options_entries_dict["add_background"], fg=check_fg, bg=check_bg)
+backgroundCheck.select()
+bgentry = tk.Entry(courseSubFrame, width=10, justify='center')
+bgentry.insert(END, '16.0')
+options_entries_dict["background_scale"] = bgentry
+backgroundCheck['command'] = partial(disableAllChildren, options_entries_dict["add_background"], bgentry)
 
+# Pack the osmControlFrame
 courseSubFrame.pack(padx=5, pady=5, fill=X, expand=True)
 fGreenCheck.grid(row=0, columnspan=2, sticky=W, padx=5)
 fFairwayCheck.grid(row=1, columnspan=2, sticky=W, padx=5)
 elevationCheck.grid(row=2, columnspan=2, sticky=W, padx=5)
 positionCheck.grid(row=3, columnspan=2, sticky=W, padx=5)
+backgroundCheck.grid(row=4, columnspan=2, sticky=W, padx=5)
+Label(courseSubFrame, text="Background Scale", fg=check_fg, bg=check_bg).grid(row=5, column=0, sticky=W, padx=5)
+bgentry.grid(row=5, column=1, sticky=W, padx=5)
 
 # Pack the two option frames side by side
 osmControlFrame.pack(side=LEFT, anchor=N, padx=5)

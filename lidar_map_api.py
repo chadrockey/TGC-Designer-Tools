@@ -243,7 +243,7 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
     if visible_sampling < 1.0:
         visible_sampling = 1
 
-    last_print_time = 0.0 + status_print_duration
+    last_print_time = time.time()
     for n, i in enumerate(img_points[0::visible_sampling]):
         if time.time() > last_print_time + status_print_duration:
             last_print_time = time.time()
@@ -365,7 +365,7 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
 
     # Generate heightmap only for the selected area
     num_points = len(selected_points)
-    last_print_time = 0.0
+    last_print_time = time.time()
     for n, i in enumerate(selected_points[0::lidar_sample]):
         if time.time() > last_print_time + status_print_duration:
             last_print_time = time.time()

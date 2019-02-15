@@ -209,6 +209,10 @@ class GeoPointCloud:
         # TGC is X east, Y Down, Z north
         return (east_component, -z, north_component)
 
+    def projToTGC(self, x, y, z):
+        enu = self.projToENU(x, y)
+        return self.enuToTGC(enu[0], enu[1], z)
+
     def tgcToENU(self, x, y, z):
         # TGC is centered at 0,0 with X,Z being position and Y being inverted down (largely unused)
         x2 = x + self.width / 2.0
@@ -279,4 +283,6 @@ class GeoPointCloud:
     def removeBias(self):
         self.point_matrix[:,0] = self.point_matrix[:,0] - numpy.min(self.point_matrix[:,0])
         self.point_matrix[:,1] = self.point_matrix[:,1] - numpy.min(self.point_matrix[:,1])
-        self.point_matrix[:,2] = self.point_matrix[:,2] - numpy.min(self.point_matrix[:,2])
+        # No need to clip z to the ground since the tool can do that at the end
+        # Helps keep all heights consistent for multiple resolution heightmaps and other features
+        #self.point_matrix[:,2] = self.point_matrix[:,2] - numpy.min(self.point_matrix[:,2])

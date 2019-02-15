@@ -13,10 +13,10 @@ import tgc_tools
 
 status_print_duration = 1.0 # Print progress every n seconds
 
-def get_pixel(x_pos, z_pos, height, scale):
+def get_pixel(x_pos, z_pos, height, scale, brush_type=72):
     output = json.loads('{"tool":0,"position":{"x":0.0,"y":"-Infinity","z":0.0},"rotation":{"x":0.0,"y":0.0,"z":0.0},"_orientation":0.0,"scale":{"x":1.0, \
                          "y":1.0,"z":1.0},"type":0,"value":0.0,"holeId":-1,"radius":0.0,"orientation":0.0}')
-    output['type'] = 72 # Which brush shape to use
+    output['type'] = brush_type
     output['position']['x'] = x_pos
     output['position']['z'] = z_pos
     output['value'] = height
@@ -39,45 +39,61 @@ def set_constants(course_json, flatten_fairways=False, flatten_greens=False):
 def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=print):
     printf("Loading data from " + heightmap_dir_path)
 
-    # See if we need to infill.
+    # Infill data to prevent holes and make the data nice and smooth
     hm_file = Path(heightmap_dir_path) / '/heightmap.npy'
-    in_file = Path(heightmap_dir_path) / '/infilled.npy'
+    try:
+        read_dictionary = np.load(heightmap_dir_path + '/heightmap.npy').item()
+        im = read_dictionary['heightmap'].astype('float32')
 
-    if not in_file.exists() or hm_file.stat().st_mtime > in_file.stat().st_mtime:
-        # Either infilled doesn't exist or heightmap.npy is newer than infilled
-        try:
-            read_dictionary = np.load(heightmap_dir_path + '/heightmap.npy').item()
-            im = read_dictionary['heightmap'].astype('float32')
+        mask = cv2.imread(heightmap_dir_path + '/mask.png', cv2.IMREAD_COLOR)
+        # Turn mask into matrix order from image order
+        mask = np.flip(mask, 0)
 
-            mask = cv2.imread(heightmap_dir_path + '/mask.png', cv2.IMREAD_COLOR)
-            # Turn mask into matrix order from image order
-            mask = np.flip(mask, 0)
-
-            # Process Image
-            printf("Filling holes in heightmap")
-            out, holeMask = infill_image_scipy(im, mask)
-        except:
-            printf("Could not find heightmap or mask at: " + heightmap_dir_path)
-            return course_json
-
-        # Export data
-        read_dictionary['heightmap'] = out
-        np.save(heightmap_dir_path + '/infilled', read_dictionary) # Save as numpy format since we have raw float elevations
-    else:
-        read_dictionary = np.load(heightmap_dir_path + '/infilled.npy').item()
-
-    pc = GeoPointCloud()
-    image_scale = read_dictionary['image_scale']
-    pc.addFromImage(read_dictionary['heightmap'], image_scale, read_dictionary['origin'], read_dictionary['projection'])
+        # Process Image
+        printf("Filling holes in heightmap")
+        image_scale = read_dictionary['image_scale']
+        printf("Map scale is: " + str(image_scale) + " meters")
+        background_ratio = None
+        if options_dict.get('add_background', False):
+            background_scale = float(options_dict.get('background_scale', 16.0))
+            background_ratio = background_scale/image_scale
+            printf("Background requested with scale: " + str(background_scale) + " meters")
+            
+        heightmap, background, holeMask = infill_image_scipy(im, mask, background_ratio=background_ratio, printf=printf)
+    except FileNotFoundError:
+        printf("Could not find heightmap or mask at: " + heightmap_dir_path)
+        return course_json
 
     # Clear existing terrain
     course_json = set_constants(course_json, options_dict.get('flatten_fairways', False), options_dict.get('flatten_greens', False))
     course_json["userLayers"]["height"] = []
     course_json["userLayers"]["terrainHeight"] = []
 
+    # Construct high resolution model
+    pc = GeoPointCloud()
+    pc.addFromImage(heightmap, image_scale, read_dictionary['origin'], read_dictionary['projection'])
+
+    # Add low resolution background
+    if background is not None:
+        background_pc = GeoPointCloud()
+        background_pc.addFromImage(background, background_scale, read_dictionary['origin'], read_dictionary['projection'])
+        num_points = len(background_pc.points())
+        last_print_time = time.time()
+
+        for n, i in enumerate(background_pc.points()):
+            if time.time() > last_print_time + status_print_duration:
+                last_print_time = time.time()
+                printf(str(round(100.0*float(n) / num_points, 2)) + "% through heightmap")
+
+            # Convert to projected coordinates, then project to TGC using the high resolution pointcloud to ensure alignment
+            easting, northing = background_pc.enuToProj(i[0], i[1])
+            x, y, z = pc.projToTGC(easting, northing, 0.0)
+            # Using 10 - the very soft circles means we need to scale 2.5x more to fill and smooth the terrain
+            course_json["userLayers"]["height"].append(get_pixel(x, z, i[2], 2.5*background_scale, brush_type=10))
+
     # Convert the pointcloud into height elements
     num_points = len(pc.points())
-    last_print_time = 0.0
+    last_print_time = time.time()
     for n, i in enumerate(pc.points()):
         if time.time() > last_print_time + status_print_duration:
             last_print_time = time.time()

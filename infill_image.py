@@ -1,7 +1,6 @@
 import cv2
-
+import math
 import numpy as np
-import cv2
 
 from scipy.interpolate import griddata
 
@@ -32,48 +31,56 @@ def get_binary_mask(np_array, cv2_mask):
 
     return holeMask, remove_mask, keep_mask
 
-# Image as numpy array
-def infill_image(np_array, cv2_mask):
-    holeMask, remove_mask, keep_mask = get_binary_mask(np_array, cv2_mask)
-
-    dst = cv2.inpaint(np_array,holeMask,3,cv2.INPAINT_NS)
-
-    # Remove the remove mask from the original parts of the image
-    dst = apply_mask(dst, remove_mask)
-    # Also remove the water mask, even thought it was used to fill in data
-    #dst = apply_mask(dst, keep_mask)
-
-    return (dst, holeMask)
-
 # Uses scipy griddata to interpolate and "recompute" the terrain data based on only the valid image points
 # Seems to produce a smoother and more natural result
 # Also allows us to sample in arbitrary sizes
-def infill_image_scipy(np_array, cv2_mask):
+def infill_image_scipy(np_array, cv2_mask, background_ratio=16.0, printf=print):
     holeMask, remove_mask, keep_mask = get_binary_mask(np_array, cv2_mask)
 
     # Get valid pixel elevations
+    full_points_list = []
+    full_values_list = []
+
     points_list = []
     values_list = []
 
     output_list = []
 
+    printf("Finding valid masked points")
     for row in np.arange(0, np_array.shape[0]):
         for column in np.arange(0, np_array.shape[1]):
+            value = np_array[row, column][0]
             masked = holeMask[row, column]
 
+            # Need to output a high resolution pixel for every pixel in original
             output_list.append([row, column])
 
-            # Don't insert masked elements or those that are invalid
-            value = np_array[row, column][0]
-            if masked < 1 and value > 0.0:
-                # Valid point, feed into algorithm
-                points_list.append([row, column])
-                values_list.append(value)
+            # Don't interpolate on invalid points
+            if value > 0.0:
+                # Background requires every valid point
+                full_points_list.append([row, column])
+                full_values_list.append(value)
+                if masked < 1:
+                    # Only feed masked points into high resolution
+                    points_list.append([row, column])
+                    values_list.append(value)
 
     points = np.array(points_list)
     values = np.array(values_list)
     outs = np.array(output_list)
 
-    grid_z = griddata(points, values, outs, method='linear', fill_value=-1.0)
+    background_map = None
+    if background_ratio is not None:
+        printf("Generating low detail background")
+        starts = np.amin(output_list, axis=0)
+        ends = np.amax(output_list, axis=0)
+        background_row_count = math.ceil((ends[0]-starts[0])/background_ratio)
+        background_col_count = math.ceil((ends[1]-starts[1])/background_ratio)
+        background_outs = np.mgrid[starts[0]:ends[0]:background_ratio, starts[1]:ends[1]:background_ratio].reshape(2,-1).T
+        background_grid_z = griddata(full_points_list, full_values_list, background_outs, method='linear', fill_value=-1.0)
+        background_map = background_grid_z.reshape((background_row_count, background_col_count))
 
-    return apply_mask(grid_z.reshape(np_array.shape), remove_mask), holeMask
+    printf("Removing holes in high detail terrain")
+    detail_grid_z = griddata(points, values, outs, method='linear', fill_value=-1.0)  
+
+    return apply_mask(detail_grid_z.reshape(np_array.shape), remove_mask), background_map, holeMask
