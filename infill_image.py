@@ -63,10 +63,12 @@ def infill_image_scipy(np_array, cv2_mask):
 
             output_list.append([row, column])
 
-            if masked < 1:
+            # Don't insert masked elements or those that are invalid
+            value = np_array[row, column][0]
+            if masked < 1 and value > 0.0:
                 # Valid point, feed into algorithm
                 points_list.append([row, column])
-                values_list.append(np_array[row, column][0])
+                values_list.append(value)
 
     points = np.array(points_list)
     values = np.array(values_list)
