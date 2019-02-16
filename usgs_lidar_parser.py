@@ -225,94 +225,113 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                             xml = x
 
                     if xml is None:
-                        printf("Could not find metadata for " + filename + ".  Skipping...")
-                        continue
+                        printf("Could not find metadata for " + filename + ".")
+                    else:
+                        printf("Using metadata: " + xml.name)
+                        tree = ET.parse(xml)
+                        root = tree.getroot()
 
-                    printf("Using metadata: " + xml.name)
-                    tree = ET.parse(xml)
-                    root = tree.getroot()
-
-                    # Get the supplinf tag
-                    for supplinf in root.iter('supplinf'):
-                        try:
-                            supp_json = json.loads(supplinf.text.split(';')[0])
-                        except json.JSONDecodeError:
-                            printf("Could not load supplinf")
-
-                        # Parse the .prj contents in the metadata
-                        try:
-                            proj, unit = get_proj_and_unit_from_wkt(supp_json['mapProjectionDefinitionField'], printf=printf)
-                            printf("Found WKT from metadata file")
-                        except:
-                            pass
-
-                    # Look for alternate Metadata formats
-                    if proj is None:
-                        # Get the .prj contents
-                        for c in root.findall('MapProjectionDefinition'):
-                            proj, unit = get_proj_and_unit_from_wkt(c.text, printf=printf)
-                            printf("Found PRJ WKT from metadata file")
-
-                    # If unit not in CRS, try to find it in a tag
-                    if unit == 0.0:
-                        unit_name = "Unknown"
-                        for un in itertools.chain(root.iter('plandu'), root.iter('altunits')):
+                        # Get the supplinf tag
+                        for supplinf in root.iter('supplinf'):
                             try:
-                                unit_name = un.text.strip() # Some xmls have padded whitespace
+                                supp_json = json.loads(supplinf.text.split(';')[0])
+                            except json.JSONDecodeError:
+                                printf("Could not load supplinf")
+
+                            # Parse the .prj contents in the metadata
+                            try:
+                                proj, unit = get_proj_and_unit_from_wkt(supp_json['mapProjectionDefinitionField'], printf=printf)
+                                printf("Found WKT from metadata file")
                             except:
                                 pass
 
-                        if unit_name == 'meters':
-                            unit = 1.0
-                        elif unit_name == 'Foot_US':
-                            unit = 1200.0/3937.0
-                        elif unit_name == 'foot': # International Foot
-                            unit = 0.3048
-                        else:
-                            return print_failure_message(printf=printf)
+                        # Look for alternate Metadata formats
+                        if proj is None:
+                            # Get the .prj contents
+                            for c in root.findall('MapProjectionDefinition'):
+                                proj, unit = get_proj_and_unit_from_wkt(c.text, printf=printf)
+                                printf("Found PRJ WKT from metadata file")
 
-                    # Continue to look for Metadata
-                    if proj is None:
-                        # Try to find a UTM zone.
-                        utm_zone = None
-                        for uz in root.iter('utmzone'):
-                            utm_zone = float(uz.text)
+                        # If unit not in CRS, try to find it in a tag
+                        if unit == 0.0:
+                            unit_name = "Unknown"
+                            for un in itertools.chain(root.iter('plandu'), root.iter('altunits')):
+                                try:
+                                    unit_name = un.text.strip() # Some xmls have padded whitespace
+                                except:
+                                    pass
 
-                        if utm_zone is not None:
-                            printf("Found UTM Zone from metadata file")
-                            proj = pyproj.Proj(proj='utm', datum='WGS84', ellps='WGS84', zone=utm_zone, units='m')
+                            if unit_name == 'meters':
+                                unit = 1.0
+                            elif unit_name == 'Foot_US':
+                                unit = 1200.0/3937.0
+                            elif unit_name == 'foot': # International Foot
+                                unit = 0.3048
+                            else:
+                                return print_failure_message(printf=printf)
 
-                    # Continue to look for Metadata
-                    # This last method is the least reliable because the metadata could be hand generated and inconsistent
-                    if proj is None:
-                        sys = 'tmerc' # Don't think this newer metadata format uses another system
-                        datum = 'NAD83'
-                        ellips = 'GRS80' # Assume this for now, can't find any evidence another is used for lidar
-                        semiaxis = None
-                        for sa in root.iter('semiaxis'):
-                            semiaxis = float(sa.text)
-                        denflat = None
-                        for df in root.iter('denflat'):
-                            denflat = float(df.text)
-                        sfctrmer = None
-                        for sfc in root.iter('sfctrmer'):
-                            sfctrmer = float(sfc.text)
-                        feast = None
-                        for fe in root.iter('feast'):
-                            feast = float(fe.text)*unit # Scale into meters
-                        fnorth = None
-                        for fn in root.iter('fnorth'):
-                            fnorth = float(fn.text)*unit # Scale into meters
-                        meridian = None
-                        for m in root.iter('longcm'):
-                            meridian = float(m.text)
-                        latprj = None
-                        for l in root.iter('latprjo'):
-                            latprj = float(l.text)
+                        # Continue to look for Metadata
+                        if proj is None:
+                            # Try to find a UTM zone.
+                            utm_zone = None
+                            for uz in root.iter('utmzone'):
+                                utm_zone = float(uz.text)
 
-                        if not None in [semiaxis, denflat, sfctrmer, feast, fnorth, meridian, latprj]:
-                            printf("Found Projection Parameters from metadata file")
-                            proj = pyproj.Proj(proj=sys, datum=datum, ellps=ellips, a=semiaxis, f=denflat, k=sfctrmer, x_0=feast, y_0=fnorth, lon_0=meridian, lat_0=latprj, units='m', axis='enu')
+                            if utm_zone is not None:
+                                printf("Found UTM Zone from metadata file")
+                                proj = pyproj.Proj(proj='utm', datum='WGS84', ellps='WGS84', zone=utm_zone, units='m')
+
+                        # Continue to look for Metadata
+                        # This last method is the least reliable because the metadata could be hand generated and inconsistent
+                        if proj is None:
+                            sys = 'tmerc' # Don't think this newer metadata format uses another system
+                            datum = 'NAD83'
+                            ellips = 'GRS80' # Assume this for now, can't find any evidence another is used for lidar
+                            semiaxis = None
+                            for sa in root.iter('semiaxis'):
+                                semiaxis = float(sa.text)
+                            denflat = None
+                            for df in root.iter('denflat'):
+                                denflat = float(df.text)
+                            sfctrmer = None
+                            for sfc in root.iter('sfctrmer'):
+                                sfctrmer = float(sfc.text)
+                            feast = None
+                            for fe in root.iter('feast'):
+                                feast = float(fe.text)*unit # Scale into meters
+                            fnorth = None
+                            for fn in root.iter('fnorth'):
+                                fnorth = float(fn.text)*unit # Scale into meters
+                            meridian = None
+                            for m in root.iter('longcm'):
+                                meridian = float(m.text)
+                            latprj = None
+                            for l in root.iter('latprjo'):
+                                latprj = float(l.text)
+
+                            if not None in [semiaxis, denflat, sfctrmer, feast, fnorth, meridian, latprj]:
+                                printf("Found Projection Parameters from metadata file")
+                                proj = pyproj.Proj(proj=sys, datum=datum, ellps=ellips, a=semiaxis, f=denflat, k=sfctrmer, x_0=feast, y_0=fnorth, lon_0=meridian, lat_0=latprj, units='m', axis='enu')
+
+                # Rarely the files come in with lat and lon coordinates, need to convert these to UTM
+                if proj is None:
+                    if f.header.max[0] - f.header.min[0] < 2.0 and f.header.max[1] - f.header.min[1] < 2.0:
+                        # Such small difference between units, probably in geographic coordinates
+                        printf("File is likely in Geographic Coordinates (Lat/Lon Degrees).  You probably want to find alternate files, but we will try to project this for you.")
+
+                        center = ((f.header.max[1] + f.header.min[1])/2.0, (f.header.max[0] + f.header.min[0])/2.0)
+                        epsg = convert_latlon_to_utm_espg(center[0], center[1])
+                        printf("For center coordinates: " + str(center) + ":")
+
+                        utm_proj, utm_unit = proj_from_epsg(epsg, printf=printf)
+
+                        # Set the pointcloud's projection to the utm if nothing else is there yet
+                        if pc.proj is None:
+                            pc.proj = utm_proj
+
+                        # Set this units projection to coordinates and don't scale
+                        proj = pyproj.Proj(proj='latlong',datum='WGS84')
+                        unit = 1.0
 
                 if proj is None:
                     return print_failure_message(printf=printf)
