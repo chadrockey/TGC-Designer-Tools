@@ -1,7 +1,6 @@
 import math
 import numpy
 import pyproj
-import usgs_lidar_parser
 
 # Class for managing the data, base coordinate frame is zero-lower left ENU
 # Geo origin is the centroid of the data
@@ -317,6 +316,8 @@ class GeoPointCloud:
         self.resetProperties()
 
     def addFromLatLon(self, lower_left_latlon, upper_right_latlon, printf=print):
+        # Import here to avoid circular import
+        import usgs_lidar_parser
         center = ((lower_left_latlon[0]+upper_right_latlon[1])/2.0, (lower_left_latlon[1]+upper_right_latlon[1])/2.0)
         epsg = usgs_lidar_parser.convert_latlon_to_utm_espg(center[0], center[1])
         printf("For center coordinates: " + str(center) + ":")
