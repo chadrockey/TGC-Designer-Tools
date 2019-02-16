@@ -1,6 +1,7 @@
 import base64
 import cv2
 import gzip
+import itertools
 import json
 import math
 import numpy as np
@@ -205,7 +206,25 @@ def shift_features(course_json, easting_shift, northing_shift):
         for t in h["teePositions"]:
             t["x"] += easting_shift
             t["z"] += northing_shift
-        # Hole positions are in relative coordinates?
+        # Pin positions are in relative coordinates and don't need shifted
+
+    # Shift Brushes
+    for b in itertools.chain(course_json["userLayers"]["surfaces"],
+                             course_json["userLayers"]["water"],
+                             course_json["userLayers"]["outOfBounds"],
+                             course_json["userLayers"]["crowdLocations"]):
+        b['position']['x'] += easting_shift
+        b['position']['z'] += northing_shift
+
+    # Shift Objects
+    for o in course_json["placedObjects2"]:
+        for i in o["Value"]["items"]:
+            i['position']['x'] += easting_shift
+            i['position']['z'] += northing_shift
+
+        for c in o["Value"]["clusters"]:
+            c['position']['x'] += easting_shift
+            c['position']['z'] += northing_shift
 
     return course_json
 
@@ -230,27 +249,42 @@ def rotate_course(course_json, rotation_angle_radians):
     c = math.cos(-rotation_angle_radians)
     s = math.sin(-rotation_angle_radians)
 
-    for i in course_json["userLayers"]["height"]:
-        rotateCoord(i['position'], 'x', 'z', c, s)
-        i['rotation']['y'] = rotation_angle_degrees
+    # Rotate Brushes
+    for b in itertools.chain(course_json["userLayers"]["height"],
+                             course_json["userLayers"]["terrainHeight"],
+                             course_json["userLayers"]["surfaces"],
+                             course_json["userLayers"]["water"],
+                             course_json["userLayers"]["outOfBounds"],
+                             course_json["userLayers"]["crowdLocations"]):
+        rotateCoord(b['position'], 'x', 'z', c, s)
+        b['rotation']['y'] += rotation_angle_degrees
 
-    for i in course_json["userLayers"]["terrainHeight"]:
-        rotateCoord(i['position'], 'x', 'z', c, s)
-        i['rotation']['y'] = rotation_angle_degrees
-
-    # Shift splines
+    # Rotate splines
     for i in course_json["surfaceSplines"]:
         for wp in i["waypoints"]:
             rotateCoord(wp["pointOne"], 'x', 'y', c, s)
             rotateCoord(wp["pointTwo"], 'x', 'y', c, s)
             rotateCoord(wp["waypoint"], 'x', 'y', c, s)
 
-    # Shift Holes
+    # Rotate Holes
     for h in course_json["holes"]:
         for w in h["waypoints"]:
             rotateCoord(w, 'x', 'z', c, s)
         for t in h["teePositions"]:
             rotateCoord(t, 'x', 'z', c, s)
+        for p in h["pinPositions"]:
+            # Todo not 100% sure that this is correct
+            rotateCoord(p, 'x', 'y', c, s)
+
+    # Rotate Objects
+    for o in course_json["placedObjects2"]:
+        for i in o["Value"]["items"]:
+            rotateCoord(i["position"], 'x', 'z', c, s)
+            i['rotation']['y'] += rotation_angle_degrees
+
+        for cl in o["Value"]["clusters"]:
+            rotateCoord(cl["position"], 'x', 'z', c, s)
+            cl['rotation']['y'] += rotation_angle_degrees
 
     return course_json
 
@@ -444,11 +478,24 @@ def merge_courses(course1_json, course2_json):
     for i in course2_json["userLayers"]["terrainHeight"]:
         course1_json["userLayers"]["terrainHeight"].append(i)
 
-    # Shift splines
     for i in course2_json["surfaceSplines"]:
         course1_json["surfaceSplines"].append(i)
 
-    # Shift Holes
+    for i in course2_json["userLayers"]["surfaces"]:
+        course1_json["userLayers"]["surfaces"].append(i)
+
+    for i in course2_json["userLayers"]["water"]:
+        course1_json["userLayers"]["water"].append(i)
+
+    for i in course2_json["userLayers"]["outOfBounds"]:
+        course1_json["userLayers"]["outOfBounds"].append(i)
+
+    for i in course2_json["userLayers"]["crowdLocations"]:
+        course1_json["userLayers"]["crowdLocations"].append(i)
+
+    for i in course2_json["placedObjects2"]:
+        course1_json["placedObjects2"].append(i)
+
     print("Warning, holes may be out of order")
     for i in course2_json["holes"]:
         # Can only support 18 holes per course
