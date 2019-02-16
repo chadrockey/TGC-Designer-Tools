@@ -21,6 +21,8 @@ class GeoPointCloud:
         self._ymax = None
         self._zmin = None
         self._zmax = None
+        self._imin = None
+        self._imax = None
         self._width = None
         self._height = None
         self._count = None
@@ -65,6 +67,18 @@ class GeoPointCloud:
         if not self._zmax:
             self._zmax = numpy.amax(self.point_matrix, axis=0)[2]
         return self._zmax
+
+    @property
+    def imin(self):
+        if not self._imin:
+            self._imin = numpy.amin(self.point_matrix, axis=0)[3]
+        return self._imin
+
+    @property
+    def imax(self):
+        if not self._imax:
+            self._imax = numpy.amax(self.point_matrix, axis=0)[3]
+        return self._imax
 
     @property
     def width(self):

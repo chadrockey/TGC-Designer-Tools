@@ -243,19 +243,27 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
     if visible_sampling < 1.0:
         visible_sampling = 1
 
+    # Some pointclouds don't have intensity channel, so try to visualize elevation instead?
+    visualization_axis = 3
+    if pc.imin == pc.imax:
+        printf("No lidar intensity found, using elevation instead")
+        visualization_axis = 2
+        # Remove everything but ground points to try to provide context to the visualized heightmap
+        img_points = img_points[np.isin(img_points[:,4], wanted_classifications)]
+
     last_print_time = time.time()
     for n, i in enumerate(img_points[0::visible_sampling]):
         if time.time() > last_print_time + status_print_duration:
             last_print_time = time.time()
             printf(str(round(100.0*float(n*visible_sampling) / num_points, 2)) + "% visualizing lidar")
-        im[int(i[0]), int(i[1])] = i[3]
+        im[int(i[0]), int(i[1])] = i[visualization_axis]
 
     # Download OpenStreetMaps Data
     printf("Adding golf features to lidar data")
 
     # Convert to RGB for pretty golf colors
     im = np.clip(im, 0.0, 3.5*image_median(im))# Limit outlier pixels
-    im = im / np.max(im) # Normalize to 1.0
+    im = (im - np.min(im)) / (np.max(im) - np.min(im)) # Normalize to 1.0
     im  = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
 
     # Use this data to draw features on the intensity image to help with masking
@@ -363,6 +371,12 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     # Remove points that aren't useful for ground heightmaps
     selected_points = selected_points[np.isin(selected_points[:,4], wanted_classifications)]
 
+    # Some pointclouds don't have intensity channel, so try to visualize elevation instead?
+    visualization_axis = 3
+    if pc.imin == pc.imax:
+        printf("No lidar intensity found, using elevation instead")
+        visualization_axis = 2
+
     # Generate heightmap only for the selected area
     num_points = len(selected_points)
     last_print_time = time.time()
@@ -376,9 +390,9 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
         # Add visual data
         value = high_res_visual[c]
         if value < 0:
-            value = i[3]
+            value = i[visualization_axis]
         else:
-            value = (i[3] - value) * 0.3 + value
+            value = (i[visualization_axis] - value) * 0.3 + value
         high_res_visual[c] = value
 
         # Add elevation data
@@ -417,7 +431,7 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     # Add OpenStreetMap to better quality visual
     imc = np.copy(high_res_visual)
     imc = np.clip(imc, 0.0, 3.5*image_median(imc)) # Limit outlier pixels
-    imc = imc / np.max(imc)
+    imc = (imc - np.min(imc)) / (np.max(imc) - np.min(imc))
     imc = cv2.cvtColor(imc, cv2.COLOR_GRAY2RGB)
     if osm_results:
         imc = OSMTGC.addOSMToImage(osm_results.ways, imc, pc, sample_scale)
@@ -430,7 +444,7 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     # Prepare nice looking copy of intensity image to save
     high_res_visual = high_res_visual[lower_y:upper_y, lower_x:upper_x]
     high_res_visual = np.clip(high_res_visual, 0.0, 3.5*image_median(high_res_visual)) # Limit outlier pixels
-    high_res_visual = high_res_visual / np.max(high_res_visual)
+    high_res_visual = (high_res_visual - np.min(high_res_visual)) / (np.max(high_res_visual) - np.min(high_res_visual))
     high_res_visual = cv2.cvtColor(high_res_visual, cv2.COLOR_GRAY2RGB)
 
     omc = om[lower_y:upper_y, lower_x:upper_x]
