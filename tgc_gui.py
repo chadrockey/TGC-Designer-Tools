@@ -252,11 +252,40 @@ def combineAction():
         B2.pack()
         popup.mainloop()
 
+# 
+def rightClickMenu(e):
+    try:
+        def rClick_Copy(e, apnd=0):
+            e.widget.event_generate('<Control-c>')
+
+        def rClick_CopyAll(e, apnd=0):
+            e.widget.event_generate('<Control-a>')
+            e.widget.event_generate('<Control-c>')
+
+        e.widget.focus()
+
+        nclst=[('Copy', lambda e=e: rClick_Copy(e)),
+               ('Copy All', lambda e=e: rClick_CopyAll(e))]
+
+        rmenu = Menu(None, tearoff=0, takefocus=0)
+
+        for (txt, cmd) in nclst:
+            rmenu.add_command(label=txt, command=cmd)
+
+        rmenu.tk_popup(e.x_root+40, e.y_root+10,entry="0")
+
+    except TclError:
+            pass
+
+    return "break"
+
+
 def tkinterPrintFunction(root, textfield, message):
     textfield.configure(state='normal')
     textfield.insert(tk.END, message + "\n")
     textfield.configure(state='disabled')
     textfield.see(tk.END)
+    textfield.bind('<Button-3>', rightClickMenu, add='')
     root.update()
 
 def runLidar(scale_entry, epsg_entry, unit_entry, printf):
