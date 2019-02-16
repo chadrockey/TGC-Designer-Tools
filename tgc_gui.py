@@ -16,6 +16,7 @@ import tgc_tools
 import lidar_map_api
 import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
+import OSMTGC
 
 TGC_GUI_VERSION = "0.0.1"
 
@@ -347,6 +348,37 @@ def generateCourseFromLidar(options_entries_dict, printf):
         drawCourse(course_json)
         printf("Done Rendering Course Preview")
 
+osm_types = [
+    ('Open Street Map Exports', '*.osm'), 
+    ('All files', '*'), 
+]
+def importOSMFile(options_entries_dict, printf):
+    global root
+    global course_json
+
+    if not root or not hasattr(root, 'filename'):
+        alert("Select a course directory before importing OSM Flat Course")
+        return
+
+    # There may be many options for this in the future (which splines to add, clear splines?, flatten fairways/greens, etc) so store efficiently
+    options_dict = {}
+
+    # Snapshot the current values of the entries dictionary into the options_dict
+    # We are reusing the same keys, so try not to change them often
+    # All values in the entries_dict must support the get() function
+    for key, entry in options_entries_dict.items():
+        options_dict[key] = entry.get()
+
+    osm_file = tk.filedialog.askopenfilename(title='Select your OpenStreetMap Export', defaultextension='osm', initialdir=root.filename, filetypes=osm_types)
+    if osm_file:
+        with open(osm_file, encoding="utf8") as f:
+            xml_data = f.read()
+            printf("Loading OpenStreetMap Data from " + str(osm_file))
+            drawPlaceholder()
+            course_json = OSMTGC.addOSMFromXML(course_json, xml_data, options_dict=options_dict, printf=printf)
+            drawCourse(course_json)
+            printf("Done Rendering Course Preview")
+
 root = tk.Tk()
 root.geometry("800x600")
 
@@ -539,6 +571,7 @@ pathCheck.select()
 options_entries_dict["hole"] = tk.BooleanVar()
 holeCheck = Checkbutton(osmSubFrame, text="Import Holes", variable=options_entries_dict["hole"], fg=check_fg, bg=check_bg)
 holeCheck.select()
+osmbutton = Button(osmSubFrame, text="Make Flat Course From OSM File", command=partial(importOSMFile, options_entries_dict, coursePrintf))
 
 osmew.grid(row=0, column=1, padx=5)
 osmns.grid(row=1, column=1, padx=5)
@@ -552,6 +585,7 @@ waterCheck.grid(row=8, columnspan=2, sticky=W, padx=5)
 cartpathCheck.grid(row=9, columnspan=2, sticky=W, padx=5)
 pathCheck.grid(row=10, columnspan=2, sticky=W, padx=5)
 holeCheck.grid(row=11, columnspan=2, sticky=W, padx=5)
+osmbutton.grid(row=12, columnspan=2)
 
 useOSMCheck.pack(padx=10, pady=10)
 osmSubFrame.pack(padx=5, pady=5)

@@ -1,6 +1,7 @@
 import math
 import numpy
 import pyproj
+import usgs_lidar_parser
 
 # Class for managing the data, base coordinate frame is zero-lower left ENU
 # Geo origin is the centroid of the data
@@ -33,56 +34,80 @@ class GeoPointCloud:
     # Should always be 0.0
     @property
     def xmin(self):
-        if not self._xmin:
+        if self._xmin is None:
             self._xmin =  numpy.amin(self.point_matrix, axis=0)[0]
         return self._xmin
 
+    @xmin.setter
+    def xmin(self, xmin):
+        self._xmin = xmin
+
     @property
     def xmax(self):
-        if not self._xmax:
+        if self._xmax is None:
             self._xmax = numpy.amax(self.point_matrix, axis=0)[0]
         return self._xmax
+
+    @xmax.setter
+    def xmax(self, xmax):
+        self._xmax = xmax
 
     # Should always be 0.0
     @property
     def ymin(self):
-        if not self._ymin:
+        if self._ymin is None:
             self._ymin = numpy.amin(self.point_matrix, axis=0)[1]
         return self._ymin
 
+    @ymin.setter
+    def ymin(self, ymin):
+        self._ymin = ymin
+
     @property
     def ymax(self):
-        if not self._ymax:
+        if self._ymax is None:
             self._ymax = numpy.amax(self.point_matrix, axis=0)[1]
         return self._ymax
 
+    @ymax.setter
+    def ymax(self, ymax):
+        self._ymax = ymax
+
     @property
     def zmin(self):
-        if not self._zmin:
+        if self._zmin is None:
             self._zmin = numpy.amin(self.point_matrix, axis=0)[2]
         return self._zmin
 
+    @zmin.setter
+    def zmin(self, zmin):
+        self._zmin = zmin
+
     @property
     def zmax(self):
-        if not self._zmax:
+        if self._zmax is None:
             self._zmax = numpy.amax(self.point_matrix, axis=0)[2]
         return self._zmax
 
+    @zmax.setter
+    def zmax(self, zmax):
+        self._zmax = zmax
+
     @property
     def imin(self):
-        if not self._imin:
+        if self._imin is None:
             self._imin = numpy.amin(self.point_matrix, axis=0)[3]
         return self._imin
 
     @property
     def imax(self):
-        if not self._imax:
+        if self._imax is None:
             self._imax = numpy.amax(self.point_matrix, axis=0)[3]
         return self._imax
 
     @property
     def width(self):
-        if not self._width:
+        if self._width is None:
             self._width = self.xmax - self.xmin
         return self._width
 
@@ -92,7 +117,7 @@ class GeoPointCloud:
 
     @property
     def height(self):
-        if not self._height:
+        if self._height is None:
             self._height = self.ymax - self.ymin
         return self._height
 
@@ -120,6 +145,10 @@ class GeoPointCloud:
     @property
     def origin(self):
         return self._origin
+
+    @origin.setter
+    def origin(self, origin):
+        self._origin = origin
 
     def latLonOrigin(self):
         return self.projToLatLon(self._origin[0], self._origin[1])
@@ -286,6 +315,25 @@ class GeoPointCloud:
         # Clear properties
         self.removeBias()
         self.resetProperties()
+
+    def addFromLatLon(self, lower_left_latlon, upper_right_latlon, printf=print):
+        center = ((lower_left_latlon[0]+upper_right_latlon[1])/2.0, (lower_left_latlon[1]+upper_right_latlon[1])/2.0)
+        epsg = usgs_lidar_parser.convert_latlon_to_utm_espg(center[0], center[1])
+        printf("For center coordinates: " + str(center) + ":")
+
+        self._proj, unit = usgs_lidar_parser.proj_from_epsg(epsg, printf=printf)
+        utm_origin = self.latlonToProj(lower_left_latlon[0], lower_left_latlon[1])
+        self._origin = utm_origin
+
+        upper_right_utm = self.latlonToProj(upper_right_latlon[0], upper_right_latlon[1])
+        self._xmin = 0.0
+        self._xmax = upper_right_utm[0] - utm_origin[0]
+        self._width = self._xmax
+        self._ymin = 0.0
+        self._ymax = upper_right_utm[1] - utm_origin[1]
+        self._height = self._ymax
+        self._zmin = 0.0
+        self._zmax = 0.0
 
     def computeOrigin(self):
         # Estimates the lower left corner as the origin

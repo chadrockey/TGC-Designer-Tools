@@ -100,6 +100,16 @@ def proj_from_epsg(epsg, printf=print):
     epsg_json = requests.get('http://prj2epsg.org/epsg/' + str(epsg) + '.json').json()
     return get_proj_and_unit_from_wkt(epsg_json['wkt'], printf=printf)
 
+def convert_latlon_to_utm_espg(lat, lon):
+    utm_band = str((math.floor((lon + 180) / 6 ) % 60) + 1)
+    if len(utm_band) == 1:
+        utm_band = '0'+utm_band
+    if lat >= 0:
+        epsg_code = '326' + utm_band
+    else:
+        epsg_code = '327' + utm_band
+    return int(epsg_code)
+
 def print_failure_message(printf=print):
     printf("Could not determine lidar projection, please report an issue and send this lidar and metadata")
     printf("Alternatively, look for something called EPSG Value in Metadata and provide EPSG and Conversion to Meters (1.0 for Meters, Approximately 0.3048 for Feet")

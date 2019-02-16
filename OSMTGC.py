@@ -1,4 +1,6 @@
 import cv2
+import xml.etree.ElementTree as ET
+from GeoPointCloud import GeoPointCloud
 import json
 import math
 import numpy as np
@@ -304,6 +306,31 @@ def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0, op
     # Insert all the found holes
     for key in sorted(hole_dictionary):
         course_json["holes"].append(hole_dictionary[key])
+
+def addOSMFromXML(course_json, xml_data, options_dict={}, printf=print):
+    printf("Adding OpenStreetMap from XML")
+    op = overpy.Overpass()
+    result = op.parse_xml(xml_data)
+
+    printf("Determining the UTM Geo Projection for this area")
+    # Find the lat and lon bounding box from the XML directly
+    # Can't find the query bounds in overpy
+    root = ET.fromstring(xml_data)
+    for bounds in root.iter('bounds'):
+        latmin = float(bounds.get('minlat'))
+        latmax = float(bounds.get('maxlat'))
+        lonmin = float(bounds.get('minlon'))
+        lonmax = float(bounds.get('maxlon'))
+        break
+    
+    # Create a basic geopointcloud to handle this projection
+    pc = GeoPointCloud()
+    pc.addFromLatLon((latmin, lonmin), (latmax, lonmax), printf=printf)
+
+    addOSMToTGC(course_json, pc, result.ways, x_offset=float(options_dict.get('adjust_ew', 0.0)), y_offset=float(options_dict.get('adjust_ns', 0.0)), \
+                options_dict=options_dict, printf=printf)
+
+    return course_json
 
 def drawWayOnImage(way, color, im, pc, image_scale, x_offset=0.0, y_offset=0.0):
     # Get the shape of this way and draw it as a poly
