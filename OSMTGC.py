@@ -6,6 +6,8 @@ import math
 import numpy as np
 import overpy
 
+import tgc_definitions
+
 # Returns left, top, right, bottom
 def nodeBoundingBox(nds):
     X = [nd[0] for nd in nds]
@@ -30,7 +32,10 @@ def getwaypoint3D(x, y, z):
     wp["z"] = z
     return wp
 
-def completeSpline(points, spline_json, handle_length, tight_splines=True):
+def getTangentAngle(previous_point, next_point):
+    return math.atan2(float(next_point["y"])-float(previous_point["y"]), float(next_point["x"])-float(previous_point["x"]))
+
+def completeSpline(points, spline_json, handle_length=1.0, is_clockwise=True, tight_splines=True):
     number_points = len(spline_json["waypoints"])
     for i in range(0, number_points):
         prev_index = i - 1 # Works for negative
@@ -44,25 +49,69 @@ def completeSpline(points, spline_json, handle_length, tight_splines=True):
 
         # Just guessing what these points are and if they are important
         # Set point one and point two to be on the line between the previous and next point, but centered on this point
-        angle = math.atan2(float(n["y"])-float(p["y"]), float(n["x"])-float(p["x"]))
+        angle = getTangentAngle(p, n)
         if tight_splines:
             # Pull the spline handles perpendicular and inside the shape in order to accurately
             # represent the shapes downloaded online.  Don't want a lot of expansion or smoothing
             angle_one = angle - 1.1 * math.pi / 2.0
             angle_two = angle - 0.9 * math.pi / 2.0
+
+            # Clockwise splines appear to point inward by default, this is what we want
+            if not is_clockwise:
+                # Flip handles inwards
+                angle_temp = angle_one
+                angle_one = angle_two + math.pi
+                angle_two = angle_temp + math.pi
         else:
             # Loose, smooth splines
             angle_one = angle + math.pi
             angle_two = angle
 
         # TODO Use angle to center to guarantee these point inwards?  I see them pointing out sometimes
-
         spline_json["waypoints"][i]["pointOne"]["x"] = t["x"] + handle_length * math.cos(angle_one)
         spline_json["waypoints"][i]["pointOne"]["y"] = t["y"] + handle_length * math.sin(angle_one)
         spline_json["waypoints"][i]["pointTwo"]["x"] = t["x"] + handle_length * math.cos(angle_two)
         spline_json["waypoints"][i]["pointTwo"]["y"] = t["y"] + handle_length * math.sin(angle_two)
 
-def newSpline(points, handle_length, tight_splines=True):
+def splineIsClockWise(spline_json):
+    # https://stackoverflow.com/questions/1165647/how-to-determine-if-a-list-of-polygon-points-are-in-clockwise-order
+    points = spline_json["waypoints"]
+    edge_sum = 0.0
+    for i in range(0, len(points)):
+        edge_sum += (points[i]["waypoint"]["x"]-points[i-1]["waypoint"]["x"])*(points[i]["waypoint"]["y"]+points[i-1]["waypoint"]["y"])
+
+    return edge_sum >= 0.0
+
+def shrinkSplineNormals(spline_json, shrink_distance=1.0, is_clockwise=True):
+    if not shrink_distance:
+        return spline_json
+
+    number_points = len(spline_json["waypoints"])
+    for i in range(0, number_points):
+        prev_index = i - 1 # Works for negative
+        next_index = i + 1
+        if next_index == number_points:
+            next_index = 0
+
+        p = spline_json["waypoints"][prev_index]["waypoint"]
+        t = spline_json["waypoints"][i]["waypoint"]
+        n = spline_json["waypoints"][next_index]["waypoint"]
+        tangent_angle = getTangentAngle(p, n)
+        # Move the spline points along the normal to the inside of the shape
+        # Since the game expands splines by a fixed amount, we need to shrink the shape by a set amount
+        normal_angle = tangent_angle - math.pi/2.0
+        # Clockwise splines appear to point inward by default, this is what we want
+        if not is_clockwise:
+            # Flip normal inwards
+            normal_angle = normal_angle + math.pi
+
+        # Now shift the spline point by shrink_distance in the direction of normal_angle
+        t["x"] += math.cos(normal_angle)*shrink_distance
+        t["y"] += math.sin(normal_angle)*shrink_distance
+
+    return spline_json
+
+def newSpline(points, path_width=0.01, shrink_distance=None, handle_length=0.5, tight_splines=True):
     spline = json.loads('{"surface": 1, \
             "secondarySurface": 11, \
             "secondaryWidth": -1.0, \
@@ -73,88 +122,83 @@ def newSpline(points, handle_length, tight_splines=True):
             "isClosed": true, \
             "isFilled": true \
         }')
+    spline["width"] = path_width
 
     for p in points:
         spline["waypoints"].append(getwaypoint(*p))
 
-    completeSpline(points, spline, handle_length, tight_splines=tight_splines)
+    # Determine direction of spline
+    is_clockwise = splineIsClockWise(spline)
+
+    # Reduce spline normal distance (move points inwards) by half of width
+    # This compensates for the game treating all splines like filled cartpaths
+    if shrink_distance is None:
+        shrink_distance = path_width/2.0
+    spline = shrinkSplineNormals(spline, shrink_distance=shrink_distance, is_clockwise=is_clockwise)
+
+    # Now that spline is shrunk, set the handles according to the properties we want
+    completeSpline(points, spline, handle_length=handle_length, is_clockwise=is_clockwise, tight_splines=tight_splines)
 
     return spline
 
 def newBunker(points):
-    bunker = newSpline(points, 1.0)
-
-    # Bunker is surface 0
-    # Add secondarySurface 4
-    # Also set a default secondary width
-    bunker["surface"] = 0
-    bunker["secondarySurface"] = 4
-    bunker["secondaryWidth"] = 0.3
+    # Very tight shaped to make complex curves
+    bunker = newSpline(points, path_width = 0.01, handle_length=1.0, tight_splines=True)
+    bunker["surface"] = tgc_definitions.featuresToSurfaces["bunker"]
+    bunker["secondarySurface"] = tgc_definitions.featuresToSurfaces["heavyrough"]
+    bunker["secondaryWidth"] = 2.5
     return bunker
 
 def newGreen(points):
-    green = newSpline(points, 0.2)
-
-    # Green is surface 1
-    # Add secondarySurface 11
-    green["surface"] = 1
-    green["secondarySurface"] = 11
-    green["secondaryWidth"] = 0.4
+    green = newSpline(points, path_width = 1.7, handle_length=0.2, tight_splines=True)
+    green["surface"] = tgc_definitions.featuresToSurfaces["green"]
+    green["secondarySurface"] = tgc_definitions.featuresToSurfaces["heavyrough"]
+    green["secondaryWidth"] = 2.5
     return green
 
 def newTeeBox(points):
-    teebox = newSpline(points, 0.2) # Smooth Teeboxes a lot
-
-    # Teebox uses Green Surface? 1
-    # Add secondarySurface 11 ? 
-    teebox["surface"] = 1
-    teebox["secondarySurface"] = 11
-    teebox["secondaryWidth"] = 0.5
+    teebox = newSpline(points, path_width = 1.7, handle_length=0.2, tight_splines=True)
+    teebox["surface"] = tgc_definitions.featuresToSurfaces["green"]
+    teebox["secondarySurface"] = tgc_definitions.featuresToSurfaces["heavyrough"]
+    teebox["secondaryWidth"] = 2.5
     return teebox
 
 def newFairway(points):
-    fw = newSpline(points, 0.2)
-
-    # Fairway is surface 2
-    # Add secondarySurface 3
-    # Also set a default secondary width
-    fw["surface"] = 2
-    fw["secondarySurface"] = 3
-    fw["secondaryWidth"] = 6.48058176
+    fw = newSpline(points, path_width = 3.0, handle_length=3.0, tight_splines=False)
+    fw["surface"] = tgc_definitions.featuresToSurfaces["fairway"]
+    fw["secondarySurface"] = tgc_definitions.featuresToSurfaces["rough"]
+    fw["secondaryWidth"] = 5.0
     return fw
 
 def newRough(points):
-    rh = newSpline(points, 0.2)
-
-    # Rough is surface 3
-    # Going to be really nice and not make this heavy rough (4)
+    rh = newSpline(points, path_width = 1.7, handle_length=3.0, tight_splines=False)
     # Game outputs secondary as 1
     # Remove with 0 width
-    rh["surface"] = 3
+    rh["surface"] = tgc_definitions.featuresToSurfaces["rough"]
     rh["secondarySurface"] = 1
     rh["secondaryWidth"] = 0.0
     return rh
 
 def newHeavyRough(points):
-    hr = newSpline(points, 0.2)
-
-    # Heavy Rough is surface 4
+    hr = newSpline(points, path_width = 1.7, handle_length=3.0, tight_splines=False)
     # Game outputs secondary as 1
     # Remove with 0 width
-    hr["surface"] = 4
+    hr["surface"] = tgc_definitions.featuresToSurfaces["heavyrough"]
     hr["secondarySurface"] = 1
     hr["secondaryWidth"] = 0.0
     return hr
 
 def newCartPath(points, area=False):
-    cp = newSpline(points, 4.0, tight_splines=False) # Smooth a lot
-
+    path_width = 2.0
+    shrink_distance = 0.0
+    if area:
+        shrink_distance = path_width/2.0
+    cp = newSpline(points, path_width=path_width, shrink_distance=shrink_distance, handle_length=4.0, tight_splines=False) # Smooth a lot
     # Cartpath is surface 10 (this is the one with Cartpath logo in Designer)
     # Remove secondary with 0 width
-    cp["surface"] = 10 # 10 is Cartpath, Surface #3
+    cp["surface"] = tgc_definitions.featuresToSurfaces["cartpath"] # Cartpath, Surface #3
     cp["secondarySurface"] = 11
     cp["secondaryWidth"] = 0.0
-    cp["width"] = 2.0
     # 0 is 'not closed' and 3 is 'closed and filled' maybe a bitmask?
     if area:
         cp["state"] = 3
@@ -168,15 +212,18 @@ def newCartPath(points, area=False):
     return cp
 
 def newWalkingPath(points, area=False):
-    wp = newSpline(points, 2.0, tight_splines=False)
-
+    # Minimum width that will render in meters
+    path_width = 1.7
+    shrink_distance = 0.0
+    if area:
+        shrink_distance = path_width/2.0
+    wp = newSpline(points, path_width=path_width, shrink_distance=shrink_distance, handle_length=2.0, tight_splines=False)
     # Make walking paths Surface #1 for visibility
     # User can switch to green/fairway/rough depending on taste
     # Remove secondary with 0 width
-    wp["surface"] = 7 
-    wp["secondarySurface"] = 3
+    wp["surface"] = tgc_definitions.featuresToSurfaces["surface1"]
+    wp["secondarySurface"] = tgc_definitions.featuresToSurfaces["rough"]
     wp["secondaryWidth"] = 0.0
-    wp["width"] = 1.55 # 1.55 meter (1.7 yards) is the minimum path width that will render
     if area:
         wp["state"] = 3
         wp["isClosed"] = True
@@ -190,10 +237,10 @@ def newWalkingPath(points, area=False):
 def newWaterHazard(points):
     # Add placeholder for water hazard.
     # Add spline and fill with black mulch
-    wh = newSpline(points, 0.2)
-
+    # No width, only very detailed fill shape
+    wh = newSpline(points, path_width = 0.01, handle_length=0.2, tight_splines=True)
     # Fill as mulch/surface #2 as a placeholder
-    wh["surface"] = 8
+    wh["surface"] = tgc_definitions.featuresToSurfaces["surface2"]
     wh["secondarySurface"] = 11
     wh["secondaryWidth"] = 0.0
     return wh
