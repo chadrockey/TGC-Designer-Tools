@@ -371,6 +371,11 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     # Remove points that aren't useful for ground heightmaps
     selected_points = selected_points[np.isin(selected_points[:,4], wanted_classifications)]
 
+    if len(selected_points) == 0:
+        printf("\n\n\nSorry, this lidar data is not classified and I can't support it right now.  Ask for help on the forum or your lidar provider if they have a classified version.")
+        printf("Classification is where they determine which points are the ground and which are trees, buildings, etc.  I can't make a nice looking course without clean input.")
+        return
+
     # Some pointclouds don't have intensity channel, so try to visualize elevation instead?
     visualization_axis = 3
     if pc.imin == pc.imax:
