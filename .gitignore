@@ -112,3 +112,4 @@ venv.bak/
 *.json
 *.jpg
 MAPQUEST_API_KEY.txt
+src/laspy/
