@@ -11,6 +11,7 @@ import math
 import numpy as np
 import numpy
 from PIL import Image, ImageTk
+import string
 
 import tgc_tools
 import lidar_map_api
@@ -65,6 +66,8 @@ def getCourseDirectory(output):
 
         try:
             course_json = tgc_tools.get_course_json(root.filename)
+            name_entry.configure(state='normal')
+            course_name_var.set(course_json["name"])
             if course_json is not None:
                 drawCourse(course_json)
         except:
@@ -94,6 +97,19 @@ def disableAllChildren(var, frame):
         else:
             frame['state'] = 'disable'
 
+def validateCourseName(action_type, index, value, previous, new_text, validation_types, validation_type, widget_name):
+    if len(value) > 32:
+        return False
+    return True
+    # Looks like they accept almost all characters, wow...
+    '''allowed_chars = string.ascii_letters + string.digits + ' '
+    allowed_set = set(allowed_chars)
+    valid = all(x in allowed_set for x in new_text)
+    if not valid:
+        return False
+        course_name_var.set(previous)
+    return True'''
+
 course_types = [
     ('Golf Course Files', '*.course'), 
     ('All files', '*'), 
@@ -113,6 +129,8 @@ def importCourseAction():
         drawPlaceholder()
         tgc_tools.unpack_course_file(root.filename, input_course)
         course_json = tgc_tools.get_course_json(root.filename)
+        name_entry.configure(state='normal')
+        course_name_var.set(course_json["name"])
         drawCourse(course_json)
 
 def exportCourseAction():
@@ -126,6 +144,11 @@ def exportCourseAction():
     dest_file = tk.filedialog.asksaveasfilename(title='Save Course As', defaultextension='.course', initialdir=root.filename, confirmoverwrite=True, filetypes=course_types)
 
     if dest_file:
+        new_course_name = course_name_var.get()
+        if len(new_course_name) > 0:
+            course_json["name"] = new_course_name
+            # Need to update the metadata file or it won't show up right in the course list
+            tgc_tools.set_course_metadata_name(root.filename, course_json["name"])
         tgc_tools.pack_course_file(root.filename, None, dest_file, course_json)
 
 def autoPositionAction():
@@ -428,6 +451,17 @@ ib = Button(tool_buttons_frame, text="Import .course", command=importCourseActio
 ib.pack(pady=5)
 eb = Button(tool_buttons_frame, text="Export .course", command=exportCourseAction)
 eb.pack(pady=5)
+
+name_frame = Frame(tool_buttons_frame, bg=tool_bg)
+Label(name_frame, text="Name", fg=text_fg, bg=tool_bg).pack(side=LEFT, padx=5)
+course_name_var = tk.StringVar()
+name_entry = tk.Entry(name_frame,textvariable=course_name_var, width=32, justify='left', validate="key")
+name_entry['validatecommand'] = (name_entry.register(validateCourseName), '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
+name_entry.configure(state='disabled')
+name_entry.configure(disabledbackground="grey50")
+name_entry.pack(side=LEFT, padx=10, pady=5)
+name_frame.pack(pady=5)
+
 apb = Button(tool_buttons_frame, text="Auto Position", command=autoPositionAction)
 apb.pack(pady=5)
 

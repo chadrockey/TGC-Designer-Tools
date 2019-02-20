@@ -144,11 +144,30 @@ def get_course_json(course_directory):
         
     return course_json
 
+def get_metadata_json(course_directory):
+    course_dir = Path(course_directory)
+    metadata_json = ""
+    with (course_dir / 'unpacked/metadata/course_metadata.json').open('r') as f:
+        metadata_json = json.loads(f.read())  
+        
+    return metadata_json
+
 def write_course_json(course_directory, course_json):
     course_dir = Path(course_directory)
     with (course_dir / 'unpacked/course_description/course_description.json').open('w') as f:
         out = json.dumps(course_json, separators=(',', ':'))
         f.write(out)
+
+def write_metadata_json(course_directory, metadata_json):
+    course_dir = Path(course_directory)
+    with (course_dir / 'unpacked/metadata/course_metadata.json').open('w') as f:
+        out = json.dumps(metadata_json, separators=(',', ':'))
+        f.write(out)
+
+def set_course_metadata_name(course_directory, new_course_name):
+    metadata_json = get_metadata_json(course_directory)
+    metadata_json["name"] = new_course_name
+    write_metadata_json(course_directory, metadata_json)
 
 def strip_terrain(course_json, output_file):
     # Copy existing terrain and write to disk
