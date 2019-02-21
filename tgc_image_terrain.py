@@ -3,6 +3,7 @@ import json
 import math
 import numpy as np
 from pathlib import Path
+import random
 import sys
 import time
 
@@ -23,6 +24,44 @@ def get_pixel(x_pos, z_pos, height, scale, brush_type=72):
     output['scale']['x'] = scale
     output['scale']['z'] = scale
     return output
+
+def get_object_item(x_pos, z_pos):
+    output = json.loads('{"position":{"x":0.0,"y":"-Infinity","z":0.0},"rotation":{"x":0.0,"y":0.0,"z":0.0},"scale":{"x":1.0,"y":1.0,"z":1.0}}')
+    output['position']['x'] = x_pos
+    output['position']['z'] = z_pos
+    output['rotation']['y'] = random.randrange(0, 359)
+    return output
+
+def get_placed_object(object_type):
+    output = json.loads('{"Key":{"category":0,"type":0,"theme":true},"Value":{"items":[],"clusters":[]}}')
+    output['Key']['type'] = object_type
+    return output
+
+def get_trees(trees, pc, image_scale):
+    output = []
+
+    # Just set all trees as default tree for now
+    normal_trees = get_placed_object(0)
+    #palm_trees = get_placed_object(10)
+
+    for tree in trees:
+        col, row, r, h = tree
+        x, y, z = pc.cv2ToTGC(row, col, image_scale)
+        t = get_object_item(x, z)
+        # Don't scale sizes for now
+        if False: #r < 2.0:  
+            #t['scale']['y'] = h / 20.0
+            palm_trees['Value']['items'].append(t)
+        else:
+            #t['scale']['y'] = h / 25.0
+            #t['scale']['x'] = r / 10.0
+            #t['scale']['z'] = r / 10.0
+            normal_trees['Value']['items'].append(t)
+
+    output.append(normal_trees)
+    #output.append(palm_trees)
+    return output
+
 
 # Set various constants that we need
 def set_constants(course_json, flatten_fairways=False, flatten_greens=False):
@@ -68,6 +107,7 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
     course_json = set_constants(course_json, options_dict.get('flatten_fairways', False), options_dict.get('flatten_greens', False))
     course_json["userLayers"]["height"] = []
     course_json["userLayers"]["terrainHeight"] = []
+    course_json["placedObjects2"] = []
 
     # Construct high resolution model
     pc = GeoPointCloud()
@@ -101,6 +141,11 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
 
         x, y, z = pc.enuToTGC(i[0], i[1], 0.0) # Don't transform y, it's inverted from elevation
         course_json["userLayers"]["height"].append(get_pixel(x, z, i[2], image_scale))
+
+    if len(read_dictionary['trees']) > 0:
+        printf("Adding trees")
+        for o in get_trees(read_dictionary['trees'], pc, image_scale):
+            course_json["placedObjects2"].append(o)
 
     # Download OpenStreetMaps Data for this smaller area
     if options_dict.get('use_osm', True):

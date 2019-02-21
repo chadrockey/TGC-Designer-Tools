@@ -418,6 +418,7 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     printf("Finished generating heightmap")
 
     printf("Starting tree detection")
+    trees = []
     # Make a maximum heightmap
     # Must be around 1 meter grid size and a power of 2 from sample_scale
     tree_ratio = 2**(math.ceil(math.log2(1.0/sample_scale)))
@@ -441,7 +442,7 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     groundmap = np.copy(om[lower_y:upper_y, lower_x:upper_x])
     groundmap = numpy.array(Image.fromarray(groundmap[:,:,0], mode='F').resize((int(groundmap.shape[1]/tree_ratio), int(groundmap.shape[0]/tree_ratio)), resample=Image.NEAREST))
     groundmap = np.expand_dims(groundmap, axis=2) # Workaround until the extra image dimension is removed
-    tree_mapper.getTreeCoordinates(groundmap, treemap[int(lower_y/tree_ratio):int(upper_y/tree_ratio), int(lower_x/tree_ratio):int(upper_x/tree_ratio)], printf=printf)
+    trees = tree_mapper.getTreeCoordinates(groundmap, treemap[int(lower_y/tree_ratio):int(upper_y/tree_ratio), int(lower_x/tree_ratio):int(upper_x/tree_ratio)], tree_ratio, printf=printf)
 
     printf("Writing files to disk")
     output_points = []
@@ -488,6 +489,7 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     output_data['image_scale'] = sample_scale
     output_data['origin'] = pc.cv2ToLatLon(lower_y, lower_x, sample_scale) # Origin is lower left corner
     output_data['projection'] = pc.proj
+    output_data['trees'] = trees
     printf("Saving data as: " + str(output_dir_path) + '/heightmap.npy')
     np.save(output_dir_path + '/heightmap', output_data) # Save as numpy format since we have raw float elevations
 

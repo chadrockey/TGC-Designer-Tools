@@ -255,6 +255,10 @@ class GeoPointCloud:
         enu = self.projToENU(x, y)
         return self.enuToTGC(enu[0], enu[1], z)
 
+    def cv2ToTGC(self, row, column, image_scale):
+        x, y = self.cv2ToENU(row, column, image_scale)
+        return self.enuToTGC(x, y, 0.0)
+
     def tgcToENU(self, x, y, z):
         # TGC is centered at 0,0 with X,Z being position and Y being inverted down (largely unused)
         x2 = x + self.width / 2.0
