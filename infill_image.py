@@ -8,6 +8,9 @@ def apply_mask(np_array, mask):
     return cv2.bitwise_and(np_array, np_array, mask=mask)
 
 def get_binary_mask(np_array, cv2_mask):
+    if cv2_mask is None:
+        return None, None, None
+
     # Get areas where there are holes in the data
     nimg = cv2.normalize(src=np_array, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
     quality, holeMask = cv2.threshold(nimg, 10, 255, cv2.THRESH_BINARY_INV)
@@ -50,7 +53,9 @@ def infill_image_scipy(np_array, cv2_mask, background_ratio=16.0, printf=print):
     for row in np.arange(0, np_array.shape[0]):
         for column in np.arange(0, np_array.shape[1]):
             value = np_array[row, column][0]
-            masked = holeMask[row, column]
+            masked = 0 # Pass through by default
+            if holeMask is not None:
+                masked = holeMask[row, column]
 
             # Need to output a high resolution pixel for every pixel in original
             output_list.append([row, column])
@@ -83,4 +88,7 @@ def infill_image_scipy(np_array, cv2_mask, background_ratio=16.0, printf=print):
     printf("Removing holes in high detail terrain")
     detail_grid_z = griddata(points, values, outs, method='linear', fill_value=-1.0)  
 
-    return apply_mask(detail_grid_z.reshape(np_array.shape), remove_mask), background_map, holeMask
+    if remove_mask is not None:
+        return apply_mask(detail_grid_z.reshape(np_array.shape), remove_mask), background_map, holeMask
+    else:
+        return detail_grid_z.reshape(np_array.shape), background_map, holeMask
