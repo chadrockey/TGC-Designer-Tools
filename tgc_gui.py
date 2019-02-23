@@ -141,6 +141,10 @@ def exportCourseAction():
         alert("Select a course directory before exporting a .course file")
         return
 
+    if course_json is None:
+        alert("Make sure to import a .course file")
+        return
+
     dest_file = tk.filedialog.asksaveasfilename(title='Save Course As', defaultextension='.course', initialdir=root.filename, confirmoverwrite=True, filetypes=course_types)
 
     if dest_file:
@@ -276,7 +280,6 @@ def combineAction():
         B2.pack()
         popup.mainloop()
 
-# 
 def rightClickMenu(e):
     try:
         def rClick_Copy(e, apnd=0):
@@ -302,7 +305,6 @@ def rightClickMenu(e):
             pass
 
     return "break"
-
 
 def tkinterPrintFunction(root, textfield, message):
     textfield.configure(state='normal')
@@ -355,6 +357,10 @@ def generateCourseFromLidar(options_entries_dict, printf):
         alert("Select a course directory before processing heightmap file")
         return
 
+    if course_json is None:
+        alert("Make sure to import a .course file")
+        return
+
     # There may be many options for this in the future (which splines to add, clear splines?, flatten fairways/greens, etc) so store efficiently
     options_dict = {}
 
@@ -381,6 +387,10 @@ def importOSMFile(options_entries_dict, printf):
 
     if not root or not hasattr(root, 'filename'):
         alert("Select a course directory before importing OSM Flat Course")
+        return
+
+    if course_json is None:
+        alert("Make sure to import a .course file")
         return
 
     # There may be many options for this in the future (which splines to add, clear splines?, flatten fairways/greens, etc) so store efficiently
