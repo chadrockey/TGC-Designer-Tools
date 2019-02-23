@@ -45,8 +45,8 @@ def get_trees(trees, pc, image_scale):
     #palm_trees = get_placed_object(10)
 
     for tree in trees:
-        col, row, r, h = tree
-        x, y, z = pc.cv2ToTGC(row, col, image_scale)
+        easting, northing, r, h = tree
+        x, y, z = pc.projToTGC(easting, northing, 0.0)
         t = get_object_item(x, z)
         # Don't scale sizes for now
         if False: #r < 2.0:  

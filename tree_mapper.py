@@ -28,7 +28,7 @@ def getTreeHeight(normalized_heightmap, x, y):
 
     return np.max(normalized_heightmap[center_y-area_width:center_y+area_width, center_x-area_width:center_x+area_width])
 
-def getTreeCoordinates(groundmap, objectmap, tree_ratio, printf=print):
+def getTreeCoordinates(groundmap, objectmap, printf=print):
     printf("Finding height offsets from groundmap to objects")
 
     groundmap, background_image, holeMask = infill_image.infill_image_scipy(groundmap, None, background_ratio=None, printf=printf)
@@ -99,8 +99,8 @@ def getTreeCoordinates(groundmap, objectmap, tree_ratio, printf=print):
             if height:
                 cv2.circle(image, (int(x), int(y)), int(r), (0, 255, 0), 1, lineType=cv2.LINE_AA)
                 #printf((x, y, r, height))
-                # Return trees in image position, radius, height
-                output_trees.append((tree_ratio*x, tree_ratio*y, r, height))
+                # Return trees in x, y, radius, height
+                output_trees.append((x, y, r, height))
 
     #fig7, ax7 = plt.subplots()
     #im7 = ax7.imshow(image, origin='lower')
