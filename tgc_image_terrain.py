@@ -3,6 +3,7 @@ import json
 import math
 import numpy as np
 from pathlib import Path
+import random
 import sys
 import time
 
@@ -22,6 +23,37 @@ def get_pixel(x_pos, z_pos, height, scale, brush_type=72):
     output['value'] = height
     output['scale']['x'] = scale
     output['scale']['z'] = scale
+    return output
+
+def get_object_item(x_pos, z_pos, rotation_degrees):
+    output = json.loads('{"position":{"x":0.0,"y":"-Infinity","z":0.0},"rotation":{"x":0.0,"y":0.0,"z":0.0},"scale":{"x":1.0,"y":1.0,"z":1.0}}')
+    output['position']['x'] = x_pos
+    output['position']['z'] = z_pos
+    output['rotation']['y'] = rotation_degrees
+    return output
+
+def get_placed_object():
+    output = json.loads('{"Key":{"category":0,"type":0,"theme":true},"Value":{"items":[],"clusters":[]}}')
+    return output
+
+def get_trees(trees):
+    output = []
+
+    # Just set all trees as default tree for now
+    normal_trees = get_placed_object()
+    normal_trees['Key']['category'] = 0
+    normal_trees['Key']['type'] = 0
+
+    for tree in trees:
+        easting, northing, r, h = tree
+        t = get_object_item(easting, northing, random.randrange(0, 359))
+        # Don't scale sizes for now
+        t['scale']['y'] = 1.0 # Height scale
+        t['scale']['x'] = 1.0
+        t['scale']['z'] = 1.0
+        normal_trees['Value']['items'].append(t)
+
+    output.append(normal_trees)
     return output
 
 # Set various constants that we need
@@ -68,6 +100,7 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
     course_json = set_constants(course_json, options_dict.get('flatten_fairways', False), options_dict.get('flatten_greens', False))
     course_json["userLayers"]["height"] = []
     course_json["userLayers"]["terrainHeight"] = []
+    course_json["placedObjects2"] = []
 
     # Construct high resolution model
     pc = GeoPointCloud()
@@ -112,8 +145,13 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         lower_right_latlon = pc.enuToLatLon(*lower_right_enu)
         # Order is South, West, North, East
         result = OSMTGC.getOSMData(lower_right_latlon[0], upper_left_latlon[1], upper_left_latlon[0], lower_right_latlon[1], printf=printf)
-        OSMTGC.addOSMToTGC(course_json, pc, result.ways, x_offset=float(options_dict.get('adjust_ew', 0.0)), y_offset=float(options_dict.get('adjust_ns', 0.0)), \
+        osm_trees = OSMTGC.addOSMToTGC(course_json, pc, result, x_offset=float(options_dict.get('adjust_ew', 0.0)), y_offset=float(options_dict.get('adjust_ns', 0.0)), \
                                                          options_dict=options_dict, printf=printf)
+
+        if len(osm_trees) > 0:
+            printf("Adding trees from OpenStreetMap")
+            for o in get_trees(osm_trees):
+                course_json["placedObjects2"].append(o)
 
     # Automatically adjust course elevation
     if options_dict.get('auto_elevation', True):
