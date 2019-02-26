@@ -234,16 +234,54 @@ def newWalkingPath(points, area=False):
         wp["isFilled"] = False
     return wp
 
-def newWaterHazard(points):
+def newWaterHazard(points, area=True):
     # Add placeholder for water hazard.
     # Add spline and fill with black mulch
-    # No width, only very detailed fill shape
-    wh = newSpline(points, path_width = 0.01, handle_length=0.2, tight_splines=True)
+    if area:
+        # No width, only very detailed fill shape
+        wh = newSpline(points, path_width = 0.01, handle_length=0.2, tight_splines=True)
+    else:
+        # Make smooth creek or waterway
+        wh = newSpline(points, path_width=2.0, shrink_distance=0.0, tight_splines=False)
     # Fill as mulch/surface #2 as a placeholder
     wh["surface"] = tgc_definitions.featuresToSurfaces["surface2"]
     wh["secondarySurface"] = 11
     wh["secondaryWidth"] = 0.0
+    if area:
+        wh["state"] = 3
+        wh["isClosed"] = True
+        wh["isFilled"] = True
+    else:
+        wh["state"] = 0 # Todo figure out what this means
+        wh["isClosed"] = False
+        wh["isFilled"] = False
     return wh
+
+def newBuilding(points):
+    # Add placeholder for buildings
+    # Add spline and fill with gravel
+    # No width, only very detailed fill shape
+    b = newSpline(points, path_width = 0.01, handle_length=0.2, tight_splines=True)
+    # Fill as a placeholder
+    b["surface"] = tgc_definitions.featuresToSurfaces["surface1"]
+    b["secondarySurface"] = 11
+    b["secondaryWidth"] = 0.0
+    return b
+
+def newForest(points):
+    # Add placeholder spline for naturaL:wood in OSM
+    # Add spline and fill with gravel
+    # No width, only very detailed fill shape
+    f = newSpline(points, path_width = 0.01, handle_length=0.2, tight_splines=True)
+    # Fill as a placeholder
+    f["surface"] = tgc_definitions.featuresToSurfaces["surface1"]
+    f["secondarySurface"] = 11
+    f["secondaryWidth"] = 0.0
+    return f
+
+def newTree(point):
+    # Just set radius and height to be generic values
+    return (point[0], point[2], 7.0, 10.0)
 
 def addHalfwayPoint(points):
     first = points[0]
@@ -287,7 +325,7 @@ def clearFeatures(course_json):
     course_json["holes"] = []
     return course_json
 
-def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0, options_dict={}, printf=print):
+def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0.0, options_dict={}, printf=print):
     # Ways represent features composed of many lat/long points (nodes)
     # We can convert these directly into the game's splines
 
@@ -300,26 +338,29 @@ def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0, op
     course_json = clearFeatures(course_json)
 
     hole_dictionary = dict() # Holes must be ordered by hole_num.  Must keep track of return order just in case data doesn't have hole number
-    for way in ways:
+    for way in osm_result.ways:
         golf_type = way.tags.get("golf", None)
+        waterway_type = way.tags.get("waterway", None)
+        building_type = way.tags.get("building", None)
+        natural_type = way.tags.get("natural", None)
         area = False
         try:
             area = "yes" == way.tags.get("area", None)
         except:
             pass
+
+        # Get the shape of this way
+        nds = []
+        for node in way.get_nodes(resolve_missing=True): # Allow automatically resolving missing nodes, but this is VERY slow with the API requests, try to request beforehand
+            nds.append(geopointcloud.latlonToTGC(node.lat, node.lon, x_offset, y_offset))
+        # Check this shapes bounding box against the limits of the terrain, don't draw outside this bounds
+        # Left, Top, Right, Bottom
+        nbb = nodeBoundingBox(nds)
+        if nbb[0] < ul_tgc[0] or nbb[1] > ul_tgc[2] or nbb[2] > lr_tgc[0] or nbb[3] < lr_tgc[2]:
+            # Off of map, skip
+            continue
+
         if golf_type is not None:
-            # Get the shape of this way and draw it as a poly
-            nds = []
-            for node in way.get_nodes(resolve_missing=True): # Allow automatically resolving missing nodes, but this is VERY slow with the API requests, try to request beforehand
-                nds.append(geopointcloud.latlonToTGC(node.lat, node.lon, x_offset, y_offset))
-
-            # Check this shapes bounding box against the limits of the terrain, don't draw outside this bounds
-            # Left, Top, Right, Bottom
-            nbb = nodeBoundingBox(nds)
-            if nbb[0] < ul_tgc[0] or nbb[1] > ul_tgc[2] or nbb[2] > lr_tgc[0] or nbb[3] < lr_tgc[2]:
-                printf("Golf element : " + golf_type + " is off of map, skipping...")
-                continue
-
             if golf_type == "green" and options_dict.get('green', True):
                 course_json["surfaceSplines"].append(newGreen(nds))
             elif golf_type == "bunker" and options_dict.get('bunker', True):
@@ -334,11 +375,13 @@ def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0, op
             elif golf_type == "rough" and options_dict.get('rough', True):
                 course_json["surfaceSplines"].append(newRough(nds))
             elif (golf_type == "water_hazard" or golf_type == "lateral_water_hazard") and options_dict.get('water', True):
-                course_json["surfaceSplines"].append(newWaterHazard(nds))
+                course_json["surfaceSplines"].append(newWaterHazard(nds, area=True))
             elif golf_type == "cartpath" and options_dict.get('cartpath', True):
                 course_json["surfaceSplines"].append(newCartPath(nds, area=area))
             elif golf_type == "path" and options_dict.get('path', True):
                 course_json["surfaceSplines"].append(newWalkingPath(nds, area=area))
+            elif golf_type == "clubhouse" and options_dict.get('building', True):
+                course_json["surfaceSplines"].append(newBuilding(nds))
             elif golf_type == "hole" and options_dict.get('hole', True):
                 par = int(way.tags.get("par", -1))
                 hole_num = int(way.tags.get("ref", -1))
@@ -349,10 +392,38 @@ def addOSMToTGC(course_json, geopointcloud, ways, x_offset=0.0, y_offset=0.0, op
                     hole_dictionary[hole_num] = hole
             else:
                 printf("Skipping: " + golf_type)
+        elif waterway_type is not None:
+            # Draw these as water hazards no matter what subtype they are
+            if options_dict.get('water', True):
+                course_json["surfaceSplines"].append(newWaterHazard(nds, area=area))
+        elif building_type is not None:
+            # Draw these as buildings no matter what subtype they are
+            if options_dict.get('building', True):
+                course_json["surfaceSplines"].append(newBuilding(nds))
+        elif natural_type is not None:
+            if natural_type == "wood" and options_dict.get('tree', True):
+                course_json["surfaceSplines"].append(newForest(nds))
 
     # Insert all the found holes
     for key in sorted(hole_dictionary):
         course_json["holes"].append(hole_dictionary[key])
+    
+    trees = [] # Trees must be dealt with differently, and are passed up to a higher level.  Tree format is (x, z, radius, height)
+    if options_dict.get('tree', False): # Trees are currently the only node right now.  This takes a lot of time to loop through, so skip if possible
+        for n in osm_result.nodes:
+            natural_type = n.tags.get("natural", None)
+            if natural_type == "tree":
+                nd = geopointcloud.latlonToTGC(n.lat, n.lon, x_offset, y_offset)
+                # Check this shapes bounding box against the limits of the terrain, don't draw outside this bounds
+                # Left, Top, Right, Bottom
+                nbb = nodeBoundingBox([nd])
+                if nbb[0] < ul_tgc[0] or nbb[1] > ul_tgc[2] or nbb[2] > lr_tgc[0] or nbb[3] < lr_tgc[2]:
+                    # Off of map, skip
+                    continue
+                trees.append(newTree(nd))
+
+    # Return the tree list for later use
+    return trees
 
 def addOSMFromXML(course_json, xml_data, options_dict={}, printf=print):
     printf("Adding OpenStreetMap from XML")

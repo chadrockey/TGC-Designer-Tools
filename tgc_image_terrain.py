@@ -25,16 +25,35 @@ def get_pixel(x_pos, z_pos, height, scale, brush_type=72):
     output['scale']['z'] = scale
     return output
 
-def get_object_item(x_pos, z_pos):
+def get_object_item(x_pos, z_pos, rotation_degrees):
     output = json.loads('{"position":{"x":0.0,"y":"-Infinity","z":0.0},"rotation":{"x":0.0,"y":0.0,"z":0.0},"scale":{"x":1.0,"y":1.0,"z":1.0}}')
     output['position']['x'] = x_pos
     output['position']['z'] = z_pos
-    output['rotation']['y'] = random.randrange(0, 359)
+    output['rotation']['y'] = rotation_degrees
     return output
 
-def get_placed_object(object_type):
+def get_placed_object():
     output = json.loads('{"Key":{"category":0,"type":0,"theme":true},"Value":{"items":[],"clusters":[]}}')
-    output['Key']['type'] = object_type
+    return output
+
+def get_osm_trees(trees):
+    output = []
+
+    # Just set all trees as default tree for now
+    normal_trees = get_placed_object()
+    normal_trees['Key']['category'] = 0
+    normal_trees['Key']['type'] = 0
+
+    for tree in trees:
+        easting, northing, r, h = tree
+        t = get_object_item(easting, northing, random.randrange(0, 359))
+        # Don't scale sizes for now
+        t['scale']['y'] = 1.0 # Height scale
+        t['scale']['x'] = 1.0
+        t['scale']['z'] = 1.0
+        normal_trees['Value']['items'].append(t)
+
+    output.append(normal_trees)
     return output
 
 def get_trees(trees, pc, image_scale):
@@ -42,6 +61,8 @@ def get_trees(trees, pc, image_scale):
 
     # Just set all trees as default tree for now
     normal_trees = get_placed_object(0)
+    normal_trees['Key']['category'] = 0
+    normal_trees['Key']['type'] = 0
     #palm_trees = get_placed_object(10)
 
     min_radius_scale = 0.2
@@ -60,7 +81,7 @@ def get_trees(trees, pc, image_scale):
     for tree in trees:
         easting, northing, r, h = tree
         x, y, z = pc.projToTGC(easting, northing, 0.0)
-        t = get_object_item(x, z)
+        t = get_object_item(easting, northing, random.randrange(0, 359))
         # Don't scale sizes for now
         if False: #r < 2.0:  
             #t['scale']['y'] = h / 20.0
@@ -74,7 +95,6 @@ def get_trees(trees, pc, image_scale):
     output.append(normal_trees)
     #output.append(palm_trees)
     return output
-
 
 # Set various constants that we need
 def set_constants(course_json, flatten_fairways=False, flatten_greens=False):
@@ -170,8 +190,13 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         lower_right_latlon = pc.enuToLatLon(*lower_right_enu)
         # Order is South, West, North, East
         result = OSMTGC.getOSMData(lower_right_latlon[0], upper_left_latlon[1], upper_left_latlon[0], lower_right_latlon[1], printf=printf)
-        OSMTGC.addOSMToTGC(course_json, pc, result.ways, x_offset=float(options_dict.get('adjust_ew', 0.0)), y_offset=float(options_dict.get('adjust_ns', 0.0)), \
+        osm_trees = OSMTGC.addOSMToTGC(course_json, pc, result, x_offset=float(options_dict.get('adjust_ew', 0.0)), y_offset=float(options_dict.get('adjust_ns', 0.0)), \
                                                          options_dict=options_dict, printf=printf)
+
+        if len(osm_trees) > 0:
+            printf("Adding trees from OpenStreetMap")
+            for o in get_osm_trees(osm_trees):
+                course_json["placedObjects2"].append(o)
 
     # Automatically adjust course elevation
     if options_dict.get('auto_elevation', True):

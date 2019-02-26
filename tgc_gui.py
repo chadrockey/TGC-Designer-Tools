@@ -19,7 +19,7 @@ import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
 import OSMTGC
 
-TGC_GUI_VERSION = "0.1.1 RELEASE CANDIDATE"
+TGC_GUI_VERSION = "0.1.2"
 
 image_width = 500
 image_height = 500
@@ -139,6 +139,10 @@ def exportCourseAction():
 
     if not root or not hasattr(root, 'filename'):
         alert("Select a course directory before exporting a .course file")
+        return
+
+    if course_json is None:
+        alert("Make sure to import a .course file")
         return
 
     dest_file = tk.filedialog.asksaveasfilename(title='Save Course As', defaultextension='.course', initialdir=root.filename, confirmoverwrite=True, filetypes=course_types)
@@ -276,7 +280,6 @@ def combineAction():
         B2.pack()
         popup.mainloop()
 
-# 
 def rightClickMenu(e):
     try:
         def rClick_Copy(e, apnd=0):
@@ -302,7 +305,6 @@ def rightClickMenu(e):
             pass
 
     return "break"
-
 
 def tkinterPrintFunction(root, textfield, message):
     textfield.configure(state='normal')
@@ -355,6 +357,10 @@ def generateCourseFromLidar(options_entries_dict, printf):
         alert("Select a course directory before processing heightmap file")
         return
 
+    if course_json is None:
+        alert("Make sure to import a .course file")
+        return
+
     # There may be many options for this in the future (which splines to add, clear splines?, flatten fairways/greens, etc) so store efficiently
     options_dict = {}
 
@@ -381,6 +387,10 @@ def importOSMFile(options_entries_dict, printf):
 
     if not root or not hasattr(root, 'filename'):
         alert("Select a course directory before importing OSM Flat Course")
+        return
+
+    if course_json is None:
+        alert("Make sure to import a .course file")
         return
 
     # There may be many options for this in the future (which splines to add, clear splines?, flatten fairways/greens, etc) so store efficiently
@@ -594,7 +604,7 @@ options_entries_dict["rough"] = tk.BooleanVar()
 roughCheck = Checkbutton(osmSubFrame, text="Import Rough", variable=options_entries_dict["rough"], fg=check_fg, bg=check_bg)
 roughCheck.select()
 options_entries_dict["water"] = tk.BooleanVar()
-waterCheck = Checkbutton(osmSubFrame, text="Import Water Hazards", variable=options_entries_dict["water"], fg=check_fg, bg=check_bg)
+waterCheck = Checkbutton(osmSubFrame, text="Import Water", variable=options_entries_dict["water"], fg=check_fg, bg=check_bg)
 waterCheck.select()
 options_entries_dict["cartpath"] = tk.BooleanVar()
 cartpathCheck = Checkbutton(osmSubFrame, text="Import Cartpaths", variable=options_entries_dict["cartpath"], fg=check_fg, bg=check_bg)
@@ -605,6 +615,12 @@ pathCheck.select()
 options_entries_dict["hole"] = tk.BooleanVar()
 holeCheck = Checkbutton(osmSubFrame, text="Import Holes", variable=options_entries_dict["hole"], fg=check_fg, bg=check_bg)
 holeCheck.select()
+options_entries_dict["building"] = tk.BooleanVar()
+buildingCheck = Checkbutton(osmSubFrame, text="Import Buildings", variable=options_entries_dict["building"], fg=check_fg, bg=check_bg)
+buildingCheck.select()
+options_entries_dict["tree"] = tk.BooleanVar()
+treeCheck = Checkbutton(osmSubFrame, text="Import Mapped Woods/Trees", variable=options_entries_dict["tree"], fg=check_fg, bg=check_bg)
+treeCheck.deselect()
 osmbutton = Button(osmSubFrame, text="Make Flat Course From OSM File", command=partial(importOSMFile, options_entries_dict, coursePrintf))
 
 osmew.grid(row=0, column=1, padx=5)
@@ -619,7 +635,9 @@ waterCheck.grid(row=8, columnspan=2, sticky=W, padx=5)
 cartpathCheck.grid(row=9, columnspan=2, sticky=W, padx=5)
 pathCheck.grid(row=10, columnspan=2, sticky=W, padx=5)
 holeCheck.grid(row=11, columnspan=2, sticky=W, padx=5)
-osmbutton.grid(row=12, columnspan=2)
+buildingCheck.grid(row=12, columnspan=2, sticky=W, padx=5)
+treeCheck.grid(row=13, columnspan=2, sticky=W, padx=5)
+osmbutton.grid(row=14, columnspan=2)
 
 useOSMCheck.pack(padx=10, pady=10)
 osmSubFrame.pack(padx=5, pady=5)
