@@ -31,8 +31,8 @@ def getTreeHeight(normalized_heightmap, x, y):
 def getTreeCoordinates(groundmap, objectmap, printf=print):
     printf("Finding height offsets from groundmap to objects")
 
-    groundmap, background_image, holeMask = infill_image.infill_image_scipy(groundmap, None, background_ratio=None, printf=printf)
-    objectmap, background_image, holeMask = infill_image.infill_image_scipy(objectmap, None, background_ratio=None, printf=printf)
+    #groundmap, background_image, holeMask = infill_image.infill_image_scipy(groundmap, None, background_ratio=None, printf=printf)
+    #objectmap, background_image, holeMask = infill_image.infill_image_scipy(objectmap, None, background_ratio=None, printf=printf)
 
     #fig, ax = plt.subplots()
     #im = ax.imshow(groundmap[:,:,0], origin='lower', cmap=cm.plasma)
@@ -41,8 +41,10 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
     #im2 = ax2.imshow(objectmap[:,:,0], origin='lower', cmap=cm.plasma)
 
     normalized_heightmap = np.subtract(objectmap, groundmap)
-    normalized_heightmap[normalized_heightmap < 0.0] = 0.0 # Set negative values to zero
-    normalized_heightmap[normalized_heightmap > 50.0] = 0.0 # Set very large values to zero
+    # Todo is hole filling needed?
+    normalized_heightmap, background_image, holeMask = infill_image.infill_image_scipy(normalized_heightmap, None, background_ratio=None, printf=printf)
+    #normalized_heightmap[normalized_heightmap < 0.0] = 0.0 # Set negative values to zero
+    #normalized_heightmap[normalized_heightmap > 50.0] = 0.0 # Set very large values to zero
 
     #fig3, ax3 = plt.subplots()
     #im3 = ax3.imshow(normalized_heightmap[:,:,0], origin='lower', cmap=cm.plasma)
