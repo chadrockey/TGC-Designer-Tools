@@ -85,7 +85,7 @@ def infill_image_scipy(np_array, cv2_mask, background_ratio=16.0, printf=print):
         background_grid_z = griddata(full_points_list, full_values_list, background_outs, method='linear', fill_value=-1.0)
         background_map = background_grid_z.reshape((background_row_count, background_col_count))
 
-    printf("Removing holes in high detail terrain")
+    printf("Removing holes")
     detail_grid_z = griddata(points, values, outs, method='linear', fill_value=-1.0)  
 
     if remove_mask is not None:
