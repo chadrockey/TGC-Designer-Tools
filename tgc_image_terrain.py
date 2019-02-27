@@ -36,7 +36,7 @@ def get_placed_object():
     output = json.loads('{"Key":{"category":0,"type":0,"theme":true},"Value":{"items":[],"clusters":[]}}')
     return output
 
-def get_trees(trees):
+def get_osm_trees(trees):
     output = []
 
     # Just set all trees as default tree for now
@@ -51,6 +51,39 @@ def get_trees(trees):
         t['scale']['y'] = 1.0 # Height scale
         t['scale']['x'] = 1.0
         t['scale']['z'] = 1.0
+        normal_trees['Value']['items'].append(t)
+
+    output.append(normal_trees)
+    return output
+
+def get_trees(trees, pc, image_scale):
+    output = []
+
+    # Just set all trees as default tree for now
+    normal_trees = get_placed_object()
+    normal_trees['Key']['category'] = 0
+    normal_trees['Key']['type'] = 0
+
+    min_radius_scale = 0.2
+    radius_scale_range = 1.5 - min_radius_scale
+    min_height_scale = 0.5
+    height_scale_range = 1.2 - min_height_scale
+
+    min_tree_radius = min(trees, key=lambda x: x[2])[2]
+    max_tree_radius = max(trees, key=lambda x: x[2])[2]
+    tree_radius_range = max_tree_radius - min_tree_radius
+    radius_multiplier = radius_scale_range / tree_radius_range
+    min_tree_height = min(trees, key=lambda x: x[3])[3]
+    max_tree_height = max(trees, key=lambda x: x[3])[3]
+    tree_height_range = max_tree_height - min_tree_height
+    height_multiplier = height_scale_range / tree_height_range
+    for tree in trees:
+        easting, northing, r, h = tree
+        x, y, z = pc.projToTGC(easting, northing, 0.0)
+        t = get_object_item(x, z, random.randrange(0, 359))
+        t['scale']['y'] = (h-min_tree_height)*height_multiplier + min_height_scale
+        t['scale']['x'] = (r-min_tree_radius)*radius_multiplier + min_radius_scale
+        t['scale']['z'] = (r-min_tree_radius)*radius_multiplier + min_radius_scale
         normal_trees['Value']['items'].append(t)
 
     output.append(normal_trees)
@@ -135,6 +168,11 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         x, y, z = pc.enuToTGC(i[0], i[1], 0.0) # Don't transform y, it's inverted from elevation
         course_json["userLayers"]["height"].append(get_pixel(x, z, i[2], image_scale))
 
+    if options_dict.get('lidar_trees', False) and len(read_dictionary['trees']) > 0:
+        printf("Adding trees from lidar data")
+        for o in get_trees(read_dictionary['trees'], pc, image_scale):
+            course_json["placedObjects2"].append(o)
+
     # Download OpenStreetMaps Data for this smaller area
     if options_dict.get('use_osm', True):
         printf("Adding golf features to lidar data")
@@ -150,7 +188,7 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
 
         if len(osm_trees) > 0:
             printf("Adding trees from OpenStreetMap")
-            for o in get_trees(osm_trees):
+            for o in get_osm_trees(osm_trees):
                 course_json["placedObjects2"].append(o)
 
     # Automatically adjust course elevation

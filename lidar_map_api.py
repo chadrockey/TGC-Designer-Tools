@@ -12,12 +12,14 @@ import json
 import math
 import numpy as np
 import os
+import scipy
 import sys
 import time
 import urllib
 
 import OSMTGC
 import tgc_tools
+import tree_mapper
 from usgs_lidar_parser import *
 
 # Parameters
@@ -59,8 +61,17 @@ sat_img = None
 
 move = False
 
-def image_median(im):
-    return np.median(im[ im >= 0.0 ])
+def normalize_image(im):
+    # Set Nans and Infs to minimum value
+    finite_pixels = im[np.isfinite(im)]
+    im[np.isnan(im)] = np.min(finite_pixels)
+    # Limit outlier pixels
+    # Use the median of valid pixels only to ensure that the contrast is good
+    im = np.clip(im, 0.0, 3.5*np.median(finite_pixels))
+    # Scale from 0.0 to 1.0
+    min_value = np.min(im)
+    max_value = np.max(im)
+    return (im - min_value) / (max_value - min_value)
 
 def createCanvasBinding():
     global canvas
@@ -232,7 +243,7 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
     image_height = math.ceil(pc.height/sample_scale)+1
 
     printf("Generating lidar intensity image")
-    im = np.full((image_height,image_width,1), -1.0, np.float32)
+    im = np.full((image_height,image_width,1), math.nan, np.float32)
 
     img_points = pc.pointsAsCV2(sample_scale)
     num_points = len(img_points)
@@ -262,8 +273,7 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
     printf("Adding golf features to lidar data")
 
     # Convert to RGB for pretty golf colors
-    im = np.clip(im, 0.0, 3.5*image_median(im))# Limit outlier pixels
-    im = (im - np.min(im)) / (np.max(im) - np.min(im)) # Normalize to 1.0
+    im = normalize_image(im)
     im  = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
 
     # Use this data to draw features on the intensity image to help with masking
@@ -345,8 +355,8 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     image_height = math.ceil(pc.height/sample_scale)+1
 
     printf("Generating heightmap")
-    om = np.full((image_height,image_width,1), -1.0, np.float32)
-    high_res_visual = np.full((image_height,image_width,1), -1.0, np.float32)
+    om = np.full((image_height,image_width,1), math.nan, np.float32)
+    high_res_visual = np.full((image_height,image_width,1), math.nan, np.float32)
 
     # Make sure selected limits are in bounds, otherwise limit them
     # This can happen if the rectangle goes outside the image
@@ -369,9 +379,10 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     selected_points = selected_points[np.where(selected_points[:,1] < upper_x)]
 
     # Remove points that aren't useful for ground heightmaps
-    selected_points = selected_points[np.isin(selected_points[:,4], wanted_classifications)]
+    ground_points = numpy.copy(selected_points) # Copy to preserve selected points for other uses like tree detection
+    ground_points = ground_points[np.isin(ground_points[:,4], wanted_classifications)]
 
-    if len(selected_points) == 0:
+    if len(ground_points) == 0:
         printf("\n\n\nSorry, this lidar data is not classified and I can't support it right now.  Ask for help on the forum or your lidar provider if they have a classified version.")
         printf("Classification is where they determine which points are the ground and which are trees, buildings, etc.  I can't make a nice looking course without clean input.")
         return
@@ -383,9 +394,9 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
         visualization_axis = 2
 
     # Generate heightmap only for the selected area
-    num_points = len(selected_points)
+    num_points = len(ground_points)
     last_print_time = time.time()
-    for n, i in enumerate(selected_points[0::lidar_sample]):
+    for n, i in enumerate(ground_points[0::lidar_sample]):
         if time.time() > last_print_time + status_print_duration:
             last_print_time = time.time()
             printf(str(round(100.0*float(n*lidar_sample) / num_points, 2)) + "% generating heightmap")
@@ -394,7 +405,7 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
 
         # Add visual data
         value = high_res_visual[c]
-        if value < 0:
+        if math.isnan(value):
             value = i[visualization_axis]
         else:
             value = (i[visualization_axis] - value) * 0.3 + value
@@ -402,7 +413,7 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
 
         # Add elevation data
         elevation = om[c]
-        if elevation < 0: # Todo can this if be removed?
+        if math.isnan(elevation):
             elevation = i[2]
         else:
             alpha = 0.1
@@ -413,6 +424,38 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
         om[c] = elevation
 
     printf("Finished generating heightmap")
+
+    printf("Starting tree detection")
+    trees = []
+    # Make a maximum heightmap
+    # Must be around 1 meter grid size and a power of 2 from sample_scale
+    tree_ratio = 2**(math.ceil(math.log2(1.0/sample_scale)))
+    tree_scale = sample_scale * tree_ratio
+    printf("Tree ratio is: " + str(tree_ratio))
+    treemap = np.full((int(image_height/tree_ratio),int(image_width/tree_ratio),1), math.nan, np.float32)
+    num_points = len(selected_points)
+    last_print_time = time.time()
+    for n, i in enumerate(selected_points[0::lidar_sample]):
+        if time.time() > last_print_time + status_print_duration:
+            last_print_time = time.time()
+            printf(str(round(100.0*float(n*lidar_sample) / num_points, 2)) + "% generating object map")
+
+        c = (int(i[0]/tree_ratio), int(i[1]/tree_ratio))
+
+        # Add elevation data
+        if math.isnan(treemap[c]) or i[2] > treemap[c]:
+            # Just take the maximum value possible for this pixel
+            treemap[c] = i[2]
+    # Make a resized copy of the ground height that matches the object detection image size
+    groundmap = np.copy(om[lower_y:upper_y, lower_x:upper_x])
+    groundmap = numpy.array(Image.fromarray(groundmap[:,:,0], mode='F').resize((int(groundmap.shape[1]/tree_ratio), int(groundmap.shape[0]/tree_ratio)), resample=Image.NEAREST))
+    groundmap = np.expand_dims(groundmap, axis=2) # Workaround until the extra image dimension is removed
+    img_trees = tree_mapper.getTreeCoordinates(groundmap, treemap[int(lower_y/tree_ratio):int(upper_y/tree_ratio), int(lower_x/tree_ratio):int(upper_x/tree_ratio)], printf=printf)
+    trees = []
+    for t in img_trees:
+        # Convert to projection for better portability
+        proj = pc.cv2ToProj(int(lower_y/tree_ratio)+t[1], int(lower_x/tree_ratio)+t[0], tree_scale)
+        trees.append((proj[0], proj[1], t[2], t[3]))
 
     printf("Writing files to disk")
     output_points = []
@@ -435,8 +478,7 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
 
     # Add OpenStreetMap to better quality visual
     imc = np.copy(high_res_visual)
-    imc = np.clip(imc, 0.0, 3.5*image_median(imc)) # Limit outlier pixels
-    imc = (imc - np.min(imc)) / (np.max(imc) - np.min(imc))
+    imc = normalize_image(imc)
     imc = cv2.cvtColor(imc, cv2.COLOR_GRAY2RGB)
     if osm_results:
         imc = OSMTGC.addOSMToImage(osm_results.ways, imc, pc, sample_scale)
@@ -448,8 +490,7 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
 
     # Prepare nice looking copy of intensity image to save
     high_res_visual = high_res_visual[lower_y:upper_y, lower_x:upper_x]
-    high_res_visual = np.clip(high_res_visual, 0.0, 3.5*image_median(high_res_visual)) # Limit outlier pixels
-    high_res_visual = (high_res_visual - np.min(high_res_visual)) / (np.max(high_res_visual) - np.min(high_res_visual))
+    high_res_visual = normalize_image(high_res_visual)
     high_res_visual = cv2.cvtColor(high_res_visual, cv2.COLOR_GRAY2RGB)
 
     omc = om[lower_y:upper_y, lower_x:upper_x]
@@ -459,6 +500,7 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     output_data['image_scale'] = sample_scale
     output_data['origin'] = pc.cv2ToLatLon(lower_y, lower_x, sample_scale) # Origin is lower left corner
     output_data['projection'] = pc.proj
+    output_data['trees'] = trees
     printf("Saving data as: " + str(output_dir_path) + '/heightmap.npy')
     np.save(output_dir_path + '/heightmap', output_data) # Save as numpy format since we have raw float elevations
 

@@ -672,6 +672,9 @@ bgentry = tk.Entry(courseSubFrame, width=10, justify='center')
 bgentry.insert(END, '16.0')
 options_entries_dict["background_scale"] = bgentry
 backgroundCheck['command'] = partial(disableAllChildren, options_entries_dict["add_background"], bgentry)
+options_entries_dict["lidar_trees"] = tk.BooleanVar()
+lidarTreeCheck = Checkbutton(courseSubFrame, text="Add Trees From Lidar (Experimental)", variable=options_entries_dict["lidar_trees"], fg=check_fg, bg=check_bg)
+lidarTreeCheck.deselect()
 
 # Pack the osmControlFrame
 courseSubFrame.pack(padx=5, pady=5, fill=X, expand=True)
@@ -682,6 +685,7 @@ positionCheck.grid(row=3, columnspan=2, sticky=W, padx=5)
 backgroundCheck.grid(row=4, columnspan=2, sticky=W, padx=5)
 Label(courseSubFrame, text="Background Scale", fg=check_fg, bg=check_bg).grid(row=5, column=0, sticky=W, padx=5)
 bgentry.grid(row=5, column=1, sticky=W, padx=5)
+lidarTreeCheck.grid(row=6, columnspan=2, sticky=W, padx=5)
 
 # Pack the two option frames side by side
 osmControlFrame.pack(side=LEFT, anchor=N, padx=5)
