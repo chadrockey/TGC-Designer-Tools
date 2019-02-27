@@ -7,9 +7,9 @@ from scipy.ndimage import label
 from skimage.feature import peak_local_max
 from skimage.morphology import watershed
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-from matplotlib import cm
+#import matplotlib as mpl
+#import matplotlib.pyplot as plt
+#from matplotlib import cm
 
 import infill_image
 
@@ -81,6 +81,7 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
     image = np.copy(img_gray)
     image  = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
     output_trees = []
+    # TODO Add status print here
     for label in np.unique(labels):
         # if the label is zero, we are examining the 'background'
         # so simply ignore it

@@ -36,5 +36,5 @@ python -m pip install -r requirements.txt
 
 ## Distribution
 
-pyinstaller -F --add-binary="./laszip/laszip-cli.exe;laszip" tgc_gui.py
+pyinstaller -F --add-binary="./laszip/laszip-cli.exe;laszip" --additional-hooks-dir="./PyInstaller/hooks/" tgc_gui.py
 
