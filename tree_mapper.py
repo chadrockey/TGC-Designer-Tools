@@ -31,6 +31,10 @@ def getTreeHeight(normalized_heightmap, x, y):
 def getTreeCoordinates(groundmap, objectmap, printf=print):
     printf("Finding height offsets from groundmap to objects")
 
+    # Tuning constants
+    estimated_tree_size = 5 # Blurring constant for guassian blur.  Without this, larger trees may split apart into smaller ones
+    minimum_tree_distance = int(2) # Minimum distance between trees, prevents small overlapping partial trees
+
     #groundmap, background_image, holeMask = infill_image.infill_image_scipy(groundmap, None, background_ratio=None, printf=printf)
     #objectmap, background_image, holeMask = infill_image.infill_image_scipy(objectmap, None, background_ratio=None, printf=printf)
 
@@ -49,7 +53,7 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
     #fig3, ax3 = plt.subplots()
     #im3 = ax3.imshow(normalized_heightmap[:,:,0], origin='lower', cmap=cm.plasma)
 
-    smoothed = cv2.GaussianBlur(np.copy(normalized_heightmap), (7,7), 0)
+    smoothed = cv2.GaussianBlur(np.copy(normalized_heightmap), (estimated_tree_size, estimated_tree_size), 0) 
 
     #fig4, ax4 = plt.subplots()
     #im4 = ax4.imshow(smoothed, origin='lower', cmap=cm.plasma)
@@ -58,14 +62,14 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
     img_float = (np.copy(smoothed) - np.min(smoothed)) / (np.max(smoothed) - np.min(smoothed)) # Normalize to 1.0
     img_gray = (255.0*img_float).astype(np.uint8)
     _, img_bin = cv2.threshold(np.copy(img_gray), 0, 255, cv2.THRESH_OTSU)
-    img_bin = cv2.morphologyEx(img_bin, cv2.MORPH_OPEN, np.ones((3, 3), dtype=int))
+    img_bin = cv2.morphologyEx(img_bin, cv2.MORPH_OPEN, np.ones((1, 1), dtype=int))
 
     #fig6, ax6 = plt.subplots()
     #im6 = ax6.imshow(img_bin, origin='lower', cmap=cm.plasma)
 
     D = ndimage.distance_transform_edt(img_bin)
-    localMax = peak_local_max(D, indices=False, min_distance=3, labels=img_bin, exclude_border=True)
-    markers = ndimage.label(localMax, structure=np.ones((3, 3)))[0]
+    localMax = peak_local_max(D, indices=False, min_distance=minimum_tree_distance, labels=img_bin, exclude_border=True)
+    markers = ndimage.label(localMax, structure=np.ones((3, 3)))[0] # structure is 8 connected direction matrix
     labels = watershed(-D, markers, mask=img_bin)
     printf("{} unique trees found".format(len(np.unique(labels)) - 1))
 
@@ -95,14 +99,13 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
      
         # Get the position and radius of the tree
         ((x, y), r) = cv2.minEnclosingCircle(c)
-        if r > 1.5:
-            # Now get the height of the tree
-            height = getTreeHeight(normalized_heightmap, x, y)
-            if height:
-                cv2.circle(image, (int(x), int(y)), int(r), (0, 255, 0), 1, lineType=cv2.LINE_AA)
-                #printf((x, y, r, height))
-                # Return trees in x, y, radius, height
-                output_trees.append((x, y, r, height))
+        # Now get the height of the tree
+        height = getTreeHeight(normalized_heightmap, x, y)
+        if height:
+            cv2.circle(image, (int(x), int(y)), int(r), (0, 255, 0), 1, lineType=cv2.LINE_AA)
+            #printf((x, y, r, height))
+            # Return trees in x, y, radius, height
+            output_trees.append((x, y, r, height))
 
     #fig7, ax7 = plt.subplots()
     #im7 = ax7.imshow(image, origin='lower')
