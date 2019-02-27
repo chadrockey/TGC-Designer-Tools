@@ -526,7 +526,7 @@ def merge_courses(course1_json, course2_json):
     return course1_json
 
 
-def elevate_terrain(course_json, elevate_shift, buffer_height=1.5, clip_lowest_value=-2.0, printf=print):
+def elevate_terrain(course_json, elevate_shift, buffer_height=3.5, clip_lowest_value=-2.0, printf=print):
     # Automatic terrain shift
     if elevate_shift == 0.0 or elevate_shift == None:
         elevations = []
