@@ -63,7 +63,6 @@ def get_trees(trees, pc, image_scale):
     normal_trees = get_placed_object()
     normal_trees['Key']['category'] = 0
     normal_trees['Key']['type'] = 0
-    #palm_trees = get_placed_object(10)
 
     min_radius_scale = 0.2
     radius_scale_range = 1.5 - min_radius_scale
@@ -81,19 +80,13 @@ def get_trees(trees, pc, image_scale):
     for tree in trees:
         easting, northing, r, h = tree
         x, y, z = pc.projToTGC(easting, northing, 0.0)
-        t = get_object_item(easting, northing, random.randrange(0, 359))
-        # Don't scale sizes for now
-        if False: #r < 2.0:  
-            #t['scale']['y'] = h / 20.0
-            palm_trees['Value']['items'].append(t)
-        else:
-            t['scale']['y'] = (h-min_tree_height)*height_multiplier + min_height_scale
-            t['scale']['x'] = (r-min_tree_radius)*radius_multiplier + min_radius_scale
-            t['scale']['z'] = (r-min_tree_radius)*radius_multiplier + min_radius_scale
-            normal_trees['Value']['items'].append(t)
+        t = get_object_item(x, z, random.randrange(0, 359))
+        t['scale']['y'] = (h-min_tree_height)*height_multiplier + min_height_scale
+        t['scale']['x'] = (r-min_tree_radius)*radius_multiplier + min_radius_scale
+        t['scale']['z'] = (r-min_tree_radius)*radius_multiplier + min_radius_scale
+        normal_trees['Value']['items'].append(t)
 
     output.append(normal_trees)
-    #output.append(palm_trees)
     return output
 
 # Set various constants that we need
