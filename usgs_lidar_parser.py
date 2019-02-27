@@ -7,7 +7,7 @@ import numpy
 import os
 import requests
 from pathlib import Path
-from urllib.request import urlopen, HTTPError
+from urllib.request import urlopen, HTTPError, URLError
 from urllib.parse import urlencode
 import xml.etree.ElementTree as ET
 
@@ -31,23 +31,16 @@ def wkt_to_epsg(wkt, printf=print):
         'mode': 'wkt',
         'terms': wkt
     }
+    req = urlopen(url + urlencode(params), timeout=5.0)
+    raw_resp = req.read()
     try:
-        req = urlopen(url + urlencode(params))
-    except HTTPError as http_exc:
-        printf("""Failed to retrieve data from prj2epsg.org API:\n
-                        Status: %s \n
-                        Message: %s""" % (http_exc.code, http_exc.msg))
-    else:
-        raw_resp = req.read()
-        try:
-            resp = json.loads(raw_resp.decode('utf-8'))
-        except json.JSONDecodeError:
-            printf('API call succeeded but response\
-                    is not JSON: %s' % raw_resp)
-            return None
+        resp = json.loads(raw_resp.decode('utf-8'))
+    except json.JSONDecodeError:
+        printf('API call succeeded but response\
+                is not JSON: %s' % raw_resp)
+        return None
 
-        return int(resp['codes'][0]['code'])
-    return None
+    return int(resp['codes'][0]['code'])
 
 def get_unit_multiplier_from_epsg(epsg):
     # Can't find any lightweight way to do this, but I depend heavily on pyproj right now
@@ -97,7 +90,7 @@ def get_proj_and_unit_from_wkt(wkt, printf=print):
 
 def proj_from_epsg(epsg, printf=print):
     # Try to get WKT for these epsg codes from webservices, need this to get a definite value for unit
-    epsg_json = requests.get('http://prj2epsg.org/epsg/' + str(epsg) + '.json').json()
+    epsg_json = requests.get('http://prj2epsg.org/epsg/' + str(epsg) + '.json', allow_redirects=False, timeout=5.0).json()
     return get_proj_and_unit_from_wkt(epsg_json['wkt'], printf=printf)
 
 def convert_latlon_to_utm_espg(lat, lon):
@@ -369,6 +362,19 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                         converted_z.append(z2)
 
                 pc.addDataSet(numpy.array(converted_x), numpy.array(converted_y), numpy.array(converted_z), numpy.array(f.intensity), numpy.array(f.classification).astype(int))
+        except HTTPError as e:
+            printf("Could not load " + filename)
+            printf("We rely on a web service to get lidar information")
+            printf("If you can't reach prj2epsg.org, lidar import won't work for now")
+            printf("""Failed to retrieve data from prj2epsg.org API:\n
+                        Status: %s \n
+                        Message: %s""" % (e.code, e.reason))
+        except URLError as e:
+            printf("Could not load " + filename)
+            printf("We rely on a web service to get lidar information")
+            printf("If you can't reach prj2epsg.org, lidar import won't work for now")
+            printf("""Failed to retrieve data from prj2epsg.org API:\n
+                        Message: %s""" % (e.reason))
         except:
             printf("Could not load " + filename + " Please report this issue.")
 
