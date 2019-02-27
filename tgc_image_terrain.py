@@ -60,7 +60,7 @@ def get_trees(trees, pc, image_scale):
     output = []
 
     # Just set all trees as default tree for now
-    normal_trees = get_placed_object(0)
+    normal_trees = get_placed_object()
     normal_trees['Key']['category'] = 0
     normal_trees['Key']['type'] = 0
     #palm_trees = get_placed_object(10)

@@ -61,7 +61,7 @@ def infill_image_scipy(np_array, cv2_mask, background_ratio=16.0, printf=print):
             output_list.append([row, column])
 
             # Don't interpolate on invalid points
-            if value > 0.0:
+            if not math.isnan(value):
                 # Background requires every valid point
                 full_points_list.append([row, column])
                 full_values_list.append(value)
