@@ -410,17 +410,20 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
     
     trees = [] # Trees must be dealt with differently, and are passed up to a higher level.  Tree format is (x, z, radius, height)
     if options_dict.get('tree', False): # Trees are currently the only node right now.  This takes a lot of time to loop through, so skip if possible
-        for n in osm_result.nodes:
-            natural_type = n.tags.get("natural", None)
-            if natural_type == "tree":
-                nd = geopointcloud.latlonToTGC(n.lat, n.lon, x_offset, y_offset)
-                # Check this shapes bounding box against the limits of the terrain, don't draw outside this bounds
-                # Left, Top, Right, Bottom
-                nbb = nodeBoundingBox([nd])
-                if nbb[0] < ul_tgc[0] or nbb[1] > ul_tgc[2] or nbb[2] > lr_tgc[0] or nbb[3] < lr_tgc[2]:
-                    # Off of map, skip
-                    continue
-                trees.append(newTree(nd))
+        if not options_dict.get('lidar_trees', False):
+            for n in osm_result.nodes:
+                natural_type = n.tags.get("natural", None)
+                if natural_type == "tree":
+                    nd = geopointcloud.latlonToTGC(n.lat, n.lon, x_offset, y_offset)
+                    # Check this shapes bounding box against the limits of the terrain, don't draw outside this bounds
+                    # Left, Top, Right, Bottom
+                    nbb = nodeBoundingBox([nd])
+                    if nbb[0] < ul_tgc[0] or nbb[1] > ul_tgc[2] or nbb[2] > lr_tgc[0] or nbb[3] < lr_tgc[2]:
+                        # Off of map, skip
+                        continue
+                    trees.append(newTree(nd))
+        else:
+            printf("Lidar trees requested: not adding trees from OpenStreetMap")
 
     # Return the tree list for later use
     return trees
