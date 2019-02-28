@@ -314,9 +314,13 @@ def getOSMData(bottom_lat, left_lon, top_lat, right_lon, printf=print):
     op = overpy.Overpass()
     # Order is South, West, North, East
     coord_string = str(bottom_lat) + "," + str(left_lon) + "," + str(top_lat) + "," + str(right_lon)
-    query = "(node(" + coord_string + ");way(" + coord_string + "););out;"
-    printf("OpenStreetMap Overpass query: " + query)
-    return op.query(query) # Request both nodes and ways for the region of interest using a union
+    try:
+        query = "(node(" + coord_string + ");way(" + coord_string + "););out;"
+        printf("OpenStreetMap Overpass query: " + query)
+        return op.query(query) # Request both nodes and ways for the region of interest using a union
+    except overpy.OverpassGatewayTimeout:
+        printf("OpenStreetMap servers are too busy right now.  Try running this tool later.")
+        return None
 
 def clearFeatures(course_json):
     # Clear splines?  Make this optional
