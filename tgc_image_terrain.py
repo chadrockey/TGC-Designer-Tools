@@ -168,7 +168,7 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         x, y, z = pc.enuToTGC(i[0], i[1], 0.0) # Don't transform y, it's inverted from elevation
         course_json["userLayers"]["height"].append(get_pixel(x, z, i[2], image_scale))
 
-    if options_dict.get('lidar_trees', False) and len(read_dictionary['trees']) > 0:
+    if options_dict.get('lidar_trees', False) and len(read_dictionary.get('trees', [])) > 0:
         printf("Adding trees from lidar data")
         for o in get_trees(read_dictionary['trees'], pc, image_scale):
             course_json["placedObjects2"].append(o)
