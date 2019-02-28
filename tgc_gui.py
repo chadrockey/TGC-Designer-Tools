@@ -666,9 +666,8 @@ options_entries_dict["auto_position"] = tk.BooleanVar()
 positionCheck = Checkbutton(courseSubFrame, text="Auto Position and Rotate", variable=options_entries_dict["auto_position"], fg=check_fg, bg=check_bg)
 positionCheck.deselect()
 options_entries_dict["add_background"] = tk.BooleanVar()
-# Todo make this off by default?  Change name to Add Background/Remove Cliffs?
-backgroundCheck = Checkbutton(courseSubFrame, text="Add Background Terrain", variable=options_entries_dict["add_background"], fg=check_fg, bg=check_bg)
-backgroundCheck.select()
+backgroundCheck = Checkbutton(courseSubFrame, text="Add Background Terrain/Remove Cliffs", variable=options_entries_dict["add_background"], fg=check_fg, bg=check_bg)
+backgroundCheck.deselect()
 bgentry = tk.Entry(courseSubFrame, width=10, justify='center')
 bgentry.insert(END, '16.0')
 options_entries_dict["background_scale"] = bgentry
