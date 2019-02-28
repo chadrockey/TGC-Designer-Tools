@@ -5,8 +5,11 @@ import json
 import math
 import numpy as np
 import overpy
+import time
 
 import tgc_definitions
+
+status_print_duration = 1.0 # Print progress every N seconds
 
 # Returns left, top, right, bottom
 def nodeBoundingBox(nds):
@@ -342,11 +345,22 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
     course_json = clearFeatures(course_json)
 
     hole_dictionary = dict() # Holes must be ordered by hole_num.  Must keep track of return order just in case data doesn't have hole number
-    for way in osm_result.ways:
+    num_ways = len(osm_result.ways)
+    last_print_time = time.time()
+    for n, way in enumerate(osm_result.ways):
+        if time.time() > last_print_time + status_print_duration:
+            last_print_time = time.time()
+            printf(str(round(100.0*float(n) / num_ways, 2)) + "% through OpenStreetMap Ways")
+
         golf_type = way.tags.get("golf", None)
         waterway_type = way.tags.get("waterway", None)
         building_type = way.tags.get("building", None)
         natural_type = way.tags.get("natural", None)
+
+        # Double checking types, but things REALLY slow down if we do the necessary bounding box checks without checking if it's a type we even care about
+        if all(v is None for v in [golf_type, waterway_type, building_type, natural_type]):
+            continue
+
         area = False
         try:
             area = "yes" == way.tags.get("area", None)
@@ -415,10 +429,16 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
     trees = [] # Trees must be dealt with differently, and are passed up to a higher level.  Tree format is (x, z, radius, height)
     if options_dict.get('tree', False): # Trees are currently the only node right now.  This takes a lot of time to loop through, so skip if possible
         if not options_dict.get('lidar_trees', False):
-            for n in osm_result.nodes:
-                natural_type = n.tags.get("natural", None)
+            num_nodes = len(osm_result.nodes)
+            last_print_time = time.time()
+            for n, node in enumerate(osm_result.nodes):
+                if time.time() > last_print_time + status_print_duration:
+                    last_print_time = time.time()
+                    printf(str(round(100.0*float(n) / num_nodes, 2)) + "% done looking for OpenStreetMap Trees")
+
+                natural_type = node.tags.get("natural", None)
                 if natural_type == "tree":
-                    nd = geopointcloud.latlonToTGC(n.lat, n.lon, x_offset, y_offset)
+                    nd = geopointcloud.latlonToTGC(node.lat, node.lon, x_offset, y_offset)
                     # Check this shapes bounding box against the limits of the terrain, don't draw outside this bounds
                     # Left, Top, Right, Bottom
                     nbb = nodeBoundingBox([nd])
