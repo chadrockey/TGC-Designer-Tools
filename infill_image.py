@@ -15,7 +15,11 @@ def get_binary_mask(np_array, cv2_mask):
     nimg = cv2.normalize(src=np_array, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
     quality, holeMask = cv2.threshold(nimg, 10, 255, cv2.THRESH_BINARY_INV)
 
-    red_pixels = np.logical_and(np.logical_and(cv2_mask[:,:,0] < 40, cv2_mask[:,:,1] < 40), cv2_mask[:,:,2] > 230)
+    # The two reds in MS Paint are
+    # Bright Red: 236, 28, 36
+    # Dark Red: 136, 0, 27
+    # Try to support both here
+    red_pixels = np.logical_and(np.logical_and(cv2_mask[:,:,0] < 40, cv2_mask[:,:,1] < 40), cv2_mask[:,:,2] > 130)
     blue_pixels = np.logical_and(np.logical_and(cv2_mask[:,:,0] > 230, cv2_mask[:,:,1] < 20), cv2_mask[:,:,2] < 20)
 
     # Don't infill areas painted in 255 Red in cv2_mask
