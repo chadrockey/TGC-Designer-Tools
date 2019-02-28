@@ -56,7 +56,7 @@ def get_osm_trees(trees):
     output.append(normal_trees)
     return output
 
-def get_trees(trees, pc, image_scale):
+def get_trees(trees, pc, mask, mask_pc, image_scale):
     output = []
 
     # Just set all trees as default tree for now
@@ -79,12 +79,18 @@ def get_trees(trees, pc, image_scale):
     height_multiplier = height_scale_range / tree_height_range
     for tree in trees:
         easting, northing, r, h = tree
-        x, y, z = pc.projToTGC(easting, northing, 0.0)
-        t = get_object_item(x, z, random.randrange(0, 359))
-        t['scale']['y'] = (h-min_tree_height)*height_multiplier + min_height_scale
-        t['scale']['x'] = (r-min_tree_radius)*radius_multiplier + min_radius_scale
-        t['scale']['z'] = (r-min_tree_radius)*radius_multiplier + min_radius_scale
-        normal_trees['Value']['items'].append(t)
+        # Use mask to only add trees on desired areas
+        row, column = mask_pc.projToCV2(easting, northing, image_scale)
+        mask_color = mask[(row, column)]
+        # Color order is BGR, support both MS Paint Red Colors
+        if not (mask_color[0] < 40 and mask_color[1] < 40 and mask_color[2] > 130):
+            # Use standard pointcloud tp project trees into final TGC coordinates
+            x, y, z = pc.projToTGC(easting, northing, 0.0)
+            t = get_object_item(x, z, random.randrange(0, 359))
+            t['scale']['y'] = (h-min_tree_height)*height_multiplier + min_height_scale
+            t['scale']['x'] = (r-min_tree_radius)*radius_multiplier + min_radius_scale
+            t['scale']['z'] = (r-min_tree_radius)*radius_multiplier + min_radius_scale
+            normal_trees['Value']['items'].append(t)
 
     output.append(normal_trees)
     return output
@@ -170,7 +176,10 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
 
     if options_dict.get('lidar_trees', False) and len(read_dictionary.get('trees', [])) > 0:
         printf("Adding trees from lidar data")
-        for o in get_trees(read_dictionary['trees'], pc, image_scale):
+        # Need separate mask geopointcloud because pc is cropped
+        mask_pc = GeoPointCloud()
+        mask_pc.addFromImage(im, image_scale, read_dictionary['origin'], read_dictionary['projection'])
+        for o in get_trees(read_dictionary['trees'], pc, mask, mask_pc, image_scale):
             course_json["placedObjects2"].append(o)
 
     # Download OpenStreetMaps Data for this smaller area

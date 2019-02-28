@@ -293,7 +293,7 @@ class GeoPointCloud:
         for row in range(0, image.shape[0]):
             for column in range(0, image.shape[1]):
                 z = image[row, column]
-                if z > 0.1: # Negative and zero values don't get converted into valid points
+                if math.isfinite(z) and z > 0.1: # Negative and zero values don't get converted into valid points
                     x, y = self.cv2ToENU(row, column, image_scale)
                     X.append(x)
                     Y.append(y)

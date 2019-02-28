@@ -90,7 +90,7 @@ def infill_image_scipy(np_array, cv2_mask, background_ratio=16.0, printf=print):
         background_map = background_grid_z.reshape((background_row_count, background_col_count))
 
     printf("Removing holes")
-    detail_grid_z = griddata(points, values, outs, method='linear', fill_value=-1.0)  
+    detail_grid_z = griddata(points, values, outs, method='linear', fill_value=-1.0) # Todo would be nice to set fill_value to NaN
 
     if remove_mask is not None:
         return apply_mask(detail_grid_z.reshape(np_array.shape), remove_mask), background_map, holeMask
