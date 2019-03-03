@@ -128,7 +128,7 @@ def get_lidar_trees(theme, tree_variety, lidar_trees, pc, mask, mask_pc, image_s
 
 # Set various constants that we need
 def set_constants(course_json, flatten_fairways=False, flatten_greens=False):
-    # None of these have been proven necessary, but it works best to start with a clean slate
+    # These only work if the terrain is made from scult (red brushes) rather than landscape (blue brushes)
     course_json["flattenFairways"] = flatten_fairways # Needed to not flatten under fairway splines
     course_json["flattenGreens"] = flatten_greens # Needed to not flatten under green splines
 

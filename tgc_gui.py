@@ -653,12 +653,6 @@ courseSubFrame = Frame(courseOptionsFrame, bg=check_bg) # Not needed for anythin
 
 Label(courseOptionsFrame, text='Course Options', fg=text_fg, bg=tool_bg).pack(pady=(15,10))
 
-options_entries_dict["flatten_greens"] = tk.BooleanVar()
-fGreenCheck = Checkbutton(courseSubFrame, text="Smooth Greens", variable=options_entries_dict["flatten_greens"], fg=check_fg, bg=check_bg)
-fGreenCheck.deselect() # This option doesn't make lidar look great, but may play better
-options_entries_dict["flatten_fairways"] = tk.BooleanVar()
-fFairwayCheck = Checkbutton(courseSubFrame, text="Smooth Fairways", variable=options_entries_dict["flatten_fairways"], fg=check_fg, bg=check_bg)
-fFairwayCheck.deselect()
 options_entries_dict["auto_elevation"] = tk.BooleanVar()
 elevationCheck = Checkbutton(courseSubFrame, text="Auto Elevation Offset", variable=options_entries_dict["auto_elevation"], fg=check_fg, bg=check_bg)
 elevationCheck.select() # This option doesn't make lidar look great, but may play better
@@ -681,15 +675,13 @@ treeVarietyCheck.deselect()
 
 # Pack the osmControlFrame
 courseSubFrame.pack(padx=5, pady=5, fill=X, expand=True)
-fGreenCheck.grid(row=0, columnspan=2, sticky=W, padx=5)
-fFairwayCheck.grid(row=1, columnspan=2, sticky=W, padx=5)
-elevationCheck.grid(row=2, columnspan=2, sticky=W, padx=5)
-positionCheck.grid(row=3, columnspan=2, sticky=W, padx=5)
-backgroundCheck.grid(row=4, columnspan=2, sticky=W, padx=5)
-Label(courseSubFrame, text="Background Scale", fg=check_fg, bg=check_bg).grid(row=5, column=0, sticky=W, padx=5)
-bgentry.grid(row=5, column=1, sticky=W, padx=5)
-lidarTreeCheck.grid(row=6, columnspan=2, sticky=W, padx=5)
-treeVarietyCheck.grid(row=7, columnspan=2, sticky=W, padx=5)
+elevationCheck.grid(row=0, columnspan=2, sticky=W, padx=5)
+positionCheck.grid(row=1, columnspan=2, sticky=W, padx=5)
+backgroundCheck.grid(row=2, columnspan=2, sticky=W, padx=5)
+Label(courseSubFrame, text="Background Scale", fg=check_fg, bg=check_bg).grid(row=3, column=0, sticky=W, padx=5)
+bgentry.grid(row=4, column=1, sticky=W, padx=5)
+lidarTreeCheck.grid(row=5, columnspan=2, sticky=W, padx=5)
+treeVarietyCheck.grid(row=6, columnspan=2, sticky=W, padx=5)
 
 # Pack the two option frames side by side
 osmControlFrame.pack(side=LEFT, anchor=N, padx=5)
