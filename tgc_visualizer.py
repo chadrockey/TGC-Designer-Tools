@@ -46,6 +46,10 @@ def drawSplinesOnImage(splines, color, im, pc, image_scale):
         for wp in s["waypoints"]:
             nds.append(pc.tgcToCV2(wp["waypoint"]["x"], wp["waypoint"]["y"], image_scale))
 
+        # Don't try to draw malformed splines
+        if len(nds) == 0:
+            continue
+
         # Uses points and not image pixels, so flip the x and y
         nds = np.array(nds)
         nds[:,[0, 1]] = nds[:,[1, 0]]
