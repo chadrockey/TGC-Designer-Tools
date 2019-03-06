@@ -77,8 +77,12 @@ def is_epsg_datum(epsg):
         pass
     return True # Invalidate this EPSG if it can't be determined or used
 
-def get_proj_and_unit_from_wkt(wkt, printf=print):
-    epsg = wkt_to_epsg(wkt, printf=printf) # Use epsg whenever possible
+# Allow forcing epsg here in case prj2epsg is down
+def get_proj_and_unit_from_wkt(wkt, force_epsg=None, printf=print):
+    if force_epsg is None:
+        epsg = wkt_to_epsg(wkt, printf=printf) # Use epsg whenever possible
+    else:
+        epsg = force_epsg
     if is_epsg_datum(epsg):
         # Not the right kind of coordinate reference system
         printf("EPSG is not map projection, skipping: " + str(epsg))
@@ -139,7 +143,12 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                 unit = 0.0 # Don't assume unit
 
                 if force_epsg is not None:
-                    proj, unit = proj_from_epsg(force_epsg, printf=printf)
+                    try:
+                        proj, unit = proj_from_epsg(force_epsg, printf=printf)
+                    except:
+                        # Prj2epsg may be down, don't verify epsg data
+                        printf("prj2epsg.org may be down, using backup for force_epsg")
+                        proj, unit = get_proj_and_unit_from_wkt(None, force_epsg=force_epsg, printf=printf)
 
                 # Try to get projection data from laspy
                 for v in f.header.vlrs:
