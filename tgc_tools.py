@@ -155,8 +155,10 @@ def get_metadata_json(course_directory):
 def write_course_json(course_directory, course_json):
     course_dir = Path(course_directory)
     with (course_dir / 'unpacked/course_description/course_description.json').open('w') as f:
-        out = json.dumps(course_json, separators=(',', ':'))
-        f.write(out)
+        # Reduce floating point resolution to save file space.  Round to millimeter
+        # Workaround since dumps has no precision
+        # https://stackoverflow.com/questions/1447287/format-floats-with-standard-json-module
+        f.write(json.dumps(json.loads(json.dumps(course_json), parse_float=lambda x: round(float(x), 3)), separators=(',', ':')))
 
 def write_metadata_json(course_directory, metadata_json):
     course_dir = Path(course_directory)
