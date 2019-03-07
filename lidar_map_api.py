@@ -259,8 +259,6 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
     if pc.imin == pc.imax:
         printf("No lidar intensity found, using elevation instead")
         visualization_axis = 2
-        # Remove everything but ground points to try to provide context to the visualized heightmap
-        img_points = img_points[np.isin(img_points[:,4], wanted_classifications)]
 
     last_print_time = time.time()
     for n, i in enumerate(img_points[0::visible_sampling]):
