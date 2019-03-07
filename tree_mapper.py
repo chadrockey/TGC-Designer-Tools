@@ -7,6 +7,7 @@ from scipy.ndimage import label
 from skimage.feature import peak_local_max
 from skimage.morphology import watershed
 from skimage.color import label2rgb
+import time
 
 #import matplotlib as mpl
 #import matplotlib.pyplot as plt
@@ -35,6 +36,7 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
     # Tuning constants
     estimated_tree_size = 5 # Blurring constant for guassian blur.  Without this, larger trees may split apart into smaller ones
     minimum_tree_distance = int(2) # Minimum distance between trees, prevents small overlapping partial trees
+    minimum_tree_height = 3.5
 
     #groundmap, background_image, holeMask = infill_image.infill_image_scipy(groundmap, None, background_ratio=None, printf=printf)
     #objectmap, background_image, holeMask = infill_image.infill_image_scipy(objectmap, None, background_ratio=None, printf=printf)
@@ -64,7 +66,8 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
     # Pre-processing.
     img_float = (np.copy(smoothed) - np.min(smoothed)) / (np.max(smoothed) - np.min(smoothed)) # Normalize to 1.0
     img_gray = (255.0*img_float).astype(np.uint8)
-    _, img_bin = cv2.threshold(np.copy(img_gray), 0, 255, cv2.THRESH_OTSU)
+    #_, img_bin = cv2.threshold(np.copy(img_gray), 0, 255, cv2.THRESH_OTSU)
+    img_bin = cv2.adaptiveThreshold(np.copy(img_gray), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 101, 0)
     img_bin = cv2.morphologyEx(img_bin, cv2.MORPH_OPEN, np.ones((1, 1), dtype=int))
 
     #fig6, ax6 = plt.subplots()
@@ -88,8 +91,14 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
     #im66 = ax66.imshow(label2rgb(labels, image=image, bg_label=0), origin='lower')
 
     output_trees = []
-    # TODO Add status print here
-    for label in np.unique(labels):
+    status_print_duration = 1.0
+    last_print_time = time.time()
+    tree_labels = np.unique(labels)
+    num_nodes = len(tree_labels)
+    for n, label in enumerate(tree_labels):
+        if time.time() > last_print_time + status_print_duration:
+            last_print_time = time.time()
+            printf(str(round(100.0*float(n) / num_nodes, 2)) + "% done finding heights of trees")
         # if the label is zero, we are examining the 'background'
         # so simply ignore it
         if label == 0:
@@ -109,7 +118,7 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
         ((x, y), r) = cv2.minEnclosingCircle(c)
         # Now get the height of the tree
         height = getTreeHeight(normalized_heightmap, x, y)
-        if height:
+        if height is not None and height > minimum_tree_height:
             cv2.circle(image, (int(x), int(y)), int(r), (0, 255, 0), 1, lineType=cv2.LINE_AA)
             #printf((x, y, r, height))
             # Return trees in x, y, radius, height

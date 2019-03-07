@@ -97,7 +97,7 @@ def get_trees(theme, tree_variety, trees):
         t['scale']['x'] = (r-min_tree_radius)*radius_multiplier + min_radius_scale
         t['scale']['z'] = (r-min_tree_radius)*radius_multiplier + min_radius_scale
 
-        if h / r < 4.0 or len(skinny_trees) == 0: # Normal Tree
+        if h / r < 2.5 or len(skinny_trees) == 0: # Normal Tree
             group = random.choice(normal_trees)
         else: # Skinny tree
             group = random.choice(skinny_trees)
