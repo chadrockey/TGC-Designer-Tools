@@ -7,9 +7,9 @@ from scipy.ndimage import label
 from skimage.feature import peak_local_max
 from skimage.morphology import watershed
 
-#import matplotlib as mpl
-#import matplotlib.pyplot as plt
-#from matplotlib import cm
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from matplotlib import cm
 
 import infill_image
 
@@ -32,8 +32,9 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
     printf("Finding height offsets from groundmap to objects")
 
     # Tuning constants
-    estimated_tree_size = 5 # Blurring constant for guassian blur.  Without this, larger trees may split apart into smaller ones
-    minimum_tree_distance = int(2) # Minimum distance between trees, prevents small overlapping partial trees
+    estimated_tree_size = 9 # Blurring constant for guassian blur.  Without this, larger trees may split apart into smaller ones
+    minimum_tree_height = 3.5
+    minimum_tree_distance = int(4) # Minimum distance between trees, prevents small overlapping partial trees
 
     #groundmap, background_image, holeMask = infill_image.infill_image_scipy(groundmap, None, background_ratio=None, printf=printf)
     #objectmap, background_image, holeMask = infill_image.infill_image_scipy(objectmap, None, background_ratio=None, printf=printf)
@@ -52,8 +53,8 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
     # Todo is hole filling needed?
     normalized_heightmap, background_image, holeMask = infill_image.infill_image_scipy(normalized_heightmap, None, background_ratio=None, printf=printf)
 
-    #fig3, ax3 = plt.subplots()
-    #im3 = ax3.imshow(normalized_heightmap[:,:,0], origin='lower', cmap=cm.plasma)
+    fig3, ax3 = plt.subplots()
+    im3 = ax3.imshow(normalized_heightmap[:,:,0], origin='lower', cmap=cm.plasma)
 
     smoothed = cv2.GaussianBlur(np.copy(normalized_heightmap), (estimated_tree_size, estimated_tree_size), 0) 
 
@@ -61,22 +62,74 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
     #im4 = ax4.imshow(smoothed, origin='lower', cmap=cm.plasma)
 
     # Pre-processing.
-    img_float = (np.copy(smoothed) - np.min(smoothed)) / (np.max(smoothed) - np.min(smoothed)) # Normalize to 1.0
+    '''img_float = (np.copy(smoothed) - np.min(smoothed)) / (np.max(smoothed) - np.min(smoothed)) # Normalize to 1.0
     img_gray = (255.0*img_float).astype(np.uint8)
     _, img_bin = cv2.threshold(np.copy(img_gray), 0, 255, cv2.THRESH_OTSU)
     img_bin = cv2.morphologyEx(img_bin, cv2.MORPH_OPEN, np.ones((1, 1), dtype=int))
 
-    #fig6, ax6 = plt.subplots()
-    #im6 = ax6.imshow(img_bin, origin='lower', cmap=cm.plasma)
+    fig6, ax6 = plt.subplots()
+    im6 = ax6.imshow(img_bin, origin='lower', cmap=cm.plasma)
 
     D = ndimage.distance_transform_edt(img_bin)
     localMax = peak_local_max(D, indices=False, min_distance=minimum_tree_distance, labels=img_bin, exclude_border=True)
     markers = ndimage.label(localMax, structure=np.ones((3, 3)))[0] # structure is 8 connected direction matrix
     labels = watershed(-D, markers, mask=img_bin)
+    printf("{} unique trees found".format(len(np.unique(labels)) - 1))'''
+
+    min_height = np.min(smoothed)
+    max_height = np.max(smoothed)
+    img_float = (np.copy(smoothed) - min_height) / (max_height - min_height) # Normalize to 1.0
+    img_gray = (255.0*img_float).astype(np.uint8)
+    uint8_thresh = 255.0*(minimum_tree_height - min_height)/(max_height - min_height)
+    print("INT THRESHOLD IS: " + str(uint8_thresh))
+    _, img_bin = cv2.threshold(np.copy(img_gray), uint8_thresh, 255, cv2.THRESH_BINARY)
+    #img_morph = cv2.morphologyEx(img_bin, cv2.MORPH_OPEN, np.ones((1, 1), dtype=int))
+    #D = ndimage.distance_transform_edt(img_morph)
+
+    fig6, ax6 = plt.subplots()
+    im6 = ax6.imshow(img_bin, origin='lower', cmap=cm.plasma)
+
+    canopy_only =  cv2.bitwise_and(smoothed, smoothed, mask=img_bin)
+
+    # Identify each tree peak in the canopy only image
+    localMax = peak_local_max(canopy_only, indices=False, min_distance=minimum_tree_distance, threshold_abs=minimum_tree_height, exclude_border=True)
+    markers = ndimage.label(localMax, structure=np.ones((3, 3)))[0] # structure is 8 connected direction matrix
+    labels = watershed(-canopy_only, markers, mask=img_bin, connectivity=2)
     printf("{} unique trees found".format(len(np.unique(labels)) - 1))
 
+    #fig66, ax66 = plt.subplots()
+    #im66 = ax66.imshow(localMax, origin='lower', cmap=cm.plasma)
+
+    # image_max is the dilation of im with a 20*20 structuring element
+    # It is used within peak_local_max function
+    '''image_max = ndimage.maximum_filter(canopy_only, size=minimum_tree_distance*2, mode='constant')
+
+    # Comparison between image_max and im to find the coordinates of local maxima
+    coordinates = peak_local_max(canopy_only, min_distance=minimum_tree_distance, threshold_abs=minimum_tree_height)
+
+    # display results
+    fig88, ax88 = plt.subplots()
+    fig, axes = plt.subplots(1, 3, figsize=(8, 3), sharex=True, sharey=True)
+    ax = axes.ravel()
+    ax[0].imshow(img_float, origin='lower', cmap=plt.cm.gray)
+    ax[0].axis('off')
+    ax[0].set_title('Original')
+
+    ax[1].imshow(image_max, origin='lower', cmap=plt.cm.gray)
+    ax[1].axis('off')
+    ax[1].set_title('Maximum filter')
+
+    ax[2].imshow(img_float, origin='lower', cmap=plt.cm.gray)
+    ax[2].autoscale(False)
+    ax[2].plot(coordinates[:, 1], coordinates[:, 0], 'r.')
+    ax[2].axis('off')
+    ax[2].set_title('Peak local max')
+
+    fig.tight_layout()'''
+
+
     #fig0, ax0 = plt.subplots()
-    #im0 = ax0.imshow(-D, origin='lower', cmap=cm.plasma)
+    #im0 = ax0.imshow(img_bin, origin='lower', cmap=cm.plasma)
 
     # loop over the unique labels returned by the Watershed
     # algorithm
@@ -110,9 +163,11 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
             # Return trees in x, y, radius, height
             output_trees.append((x, y, r, height))
 
-    #fig7, ax7 = plt.subplots()
-    #im7 = ax7.imshow(image, origin='lower')
+    image[:,:,0] = 255*localMax
 
-    #plt.show()
+    fig7, ax7 = plt.subplots()
+    im7 = ax7.imshow(image, origin='lower')
+
+    plt.show()
 
     return output_trees
