@@ -369,8 +369,12 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
 
         # Get the shape of this way
         nds = []
-        for node in way.get_nodes(resolve_missing=True): # Allow automatically resolving missing nodes, but this is VERY slow with the API requests, try to request beforehand
-            nds.append(geopointcloud.latlonToTGC(node.lat, node.lon, x_offset, y_offset))
+        try:
+            for node in way.get_nodes(resolve_missing=True): # Allow automatically resolving missing nodes, but this is VERY slow with the API requests, try to request beforehand
+                nds.append(geopointcloud.latlonToTGC(node.lat, node.lon, x_offset, y_offset))
+        except overpy.OverpassGatewayTimeout:
+            printf("OpenStreetMap servers are too busy right now.  Try running this tool later.")
+            return []
         # Check this shapes bounding box against the limits of the terrain, don't draw outside this bounds
         # Left, Top, Right, Bottom
         nbb = nodeBoundingBox(nds)
