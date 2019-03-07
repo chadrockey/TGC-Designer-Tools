@@ -98,11 +98,13 @@ def get_proj_and_unit_from_wkt(wkt, force_epsg=None, printf=print):
 def proj_from_epsg(epsg, printf=print):
     # Try to get WKT for these epsg codes from webservices, need this to get a definite value for unit
     try:
-        epsg_json = requests.get('http://prj2epsg.org/epsg/' + str(epsg) + '.json', allow_redirects=False, timeout=5.0).json()
-        return get_proj_and_unit_from_wkt(epsg_json['wkt'], printf=printf)
+        epsg_response = requests.get('http://prj2epsg.org/epsg/' + str(epsg) + '.json', allow_redirects=False, timeout=5.0)
     except:
-        printf("Problem with prj2epsg.org, try running the tool later.")
+        printf("Problem looking up epsg with prj2epsg.org, try running the tool later.")
         raise
+    epsg_json = epsg_response.json()
+    return get_proj_and_unit_from_wkt(epsg_json['wkt'], printf=printf)
+
 
 def convert_latlon_to_utm_espg(lat, lon):
     utm_band = str((math.floor((lon + 180) / 6 ) % 60) + 1)
