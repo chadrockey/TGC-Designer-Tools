@@ -6,6 +6,7 @@ from scipy import ndimage
 from scipy.ndimage import label
 from skimage.feature import peak_local_max
 from skimage.morphology import watershed
+from skimage.color import label2rgb
 
 #import matplotlib as mpl
 #import matplotlib.pyplot as plt
@@ -82,6 +83,10 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
     # algorithm
     image = np.copy(img_gray)
     image  = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+
+    #fig66, ax66 = plt.subplots()
+    #im66 = ax66.imshow(label2rgb(labels, image=image, bg_label=0), origin='lower')
+
     output_trees = []
     # TODO Add status print here
     for label in np.unique(labels):
