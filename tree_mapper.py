@@ -45,10 +45,12 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
     #im2 = ax2.imshow(objectmap[:,:,0], origin='lower', cmap=cm.plasma)
 
     normalized_heightmap = np.subtract(objectmap, groundmap)
+    # Set very large values to Invalid.  Sometimes there are random points high up in the air and these messs up the tree detection
+    outliers = np.isfinite(normalized_heightmap) # Prints a warning if you try to compare to a NaN, so filter those out
+    outliers[outliers] &= normalized_heightmap[outliers] > 40.0
+    normalized_heightmap[outliers] = math.nan
     # Todo is hole filling needed?
     normalized_heightmap, background_image, holeMask = infill_image.infill_image_scipy(normalized_heightmap, None, background_ratio=None, printf=printf)
-    #normalized_heightmap[normalized_heightmap < 0.0] = 0.0 # Set negative values to zero
-    #normalized_heightmap[normalized_heightmap > 50.0] = 0.0 # Set very large values to zero
 
     #fig3, ax3 = plt.subplots()
     #im3 = ax3.imshow(normalized_heightmap[:,:,0], origin='lower', cmap=cm.plasma)
