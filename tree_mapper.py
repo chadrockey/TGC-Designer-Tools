@@ -6,6 +6,7 @@ from scipy import ndimage
 from scipy.ndimage import label
 from skimage.feature import peak_local_max
 from skimage.morphology import watershed
+from skimage.color import label2rgb
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -32,7 +33,7 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
     printf("Finding height offsets from groundmap to objects")
 
     # Tuning constants
-    estimated_tree_size = 9 # Blurring constant for guassian blur.  Without this, larger trees may split apart into smaller ones
+    estimated_tree_size = 5 # Blurring constant for guassian blur.  Without this, larger trees may split apart into smaller ones
     minimum_tree_height = 3.5
     minimum_tree_distance = int(4) # Minimum distance between trees, prevents small overlapping partial trees
 
@@ -82,23 +83,30 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
     img_gray = (255.0*img_float).astype(np.uint8)
     uint8_thresh = 255.0*(minimum_tree_height - min_height)/(max_height - min_height)
     print("INT THRESHOLD IS: " + str(uint8_thresh))
-    _, img_bin = cv2.threshold(np.copy(img_gray), uint8_thresh, 255, cv2.THRESH_BINARY)
-    #img_morph = cv2.morphologyEx(img_bin, cv2.MORPH_OPEN, np.ones((1, 1), dtype=int))
-    #D = ndimage.distance_transform_edt(img_morph)
+    _, img_bin = cv2.threshold(np.copy(img_gray), uint8_thresh, 255, cv2.THRESH_OTSU)
+    img_morph = cv2.morphologyEx(img_bin, cv2.MORPH_OPEN, np.ones((1, 1), dtype=int))
+    D = ndimage.distance_transform_edt(img_morph)
 
     fig6, ax6 = plt.subplots()
     im6 = ax6.imshow(img_bin, origin='lower', cmap=cm.plasma)
 
+    fig67, ax67 = plt.subplots()
+    im67 = ax67.imshow(-D, origin='lower', cmap=cm.plasma)
+
     canopy_only =  cv2.bitwise_and(smoothed, smoothed, mask=img_bin)
 
     # Identify each tree peak in the canopy only image
-    localMax = peak_local_max(canopy_only, indices=False, min_distance=minimum_tree_distance, threshold_abs=minimum_tree_height, exclude_border=True)
+    #localMax = peak_local_max(canopy_only, indices=False, min_distance=minimum_tree_distance, threshold_abs=minimum_tree_height, exclude_border=True)
+    localMax = peak_local_max(D, indices=False, min_distance=minimum_tree_distance, labels=img_morph, exclude_border=True)
     markers = ndimage.label(localMax, structure=np.ones((3, 3)))[0] # structure is 8 connected direction matrix
-    labels = watershed(-canopy_only, markers, mask=img_bin, connectivity=2)
+    labels = watershed(-D, markers, mask=img_bin, connectivity=2)
     printf("{} unique trees found".format(len(np.unique(labels)) - 1))
 
-    #fig66, ax66 = plt.subplots()
-    #im66 = ax66.imshow(localMax, origin='lower', cmap=cm.plasma)
+
+    image = np.copy(img_gray)
+    image  = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+    fig66, ax66 = plt.subplots()
+    im66 = ax66.imshow(label2rgb(labels, image=image, bg_label=0), origin='lower')
 
     # image_max is the dilation of im with a 20*20 structuring element
     # It is used within peak_local_max function
@@ -133,8 +141,9 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
 
     # loop over the unique labels returned by the Watershed
     # algorithm
-    image = np.copy(img_gray)
-    image  = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+    image[:,:,0] = 255*localMax # Draw maxima in red
+    # Green is reserved for trees
+    image[:,:,2] = 0*localMax # Clear Blue
     output_trees = []
     # TODO Add status print here
     for label in np.unique(labels):
@@ -158,12 +167,10 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
         # Now get the height of the tree
         height = getTreeHeight(normalized_heightmap, x, y)
         if height:
-            cv2.circle(image, (int(x), int(y)), int(r), (0, 255, 0), 1, lineType=cv2.LINE_AA)
+            cv2.circle(image, (int(x), int(y)), int(r), (0, 0, 255), 1, lineType=cv2.LINE_AA)
             #printf((x, y, r, height))
             # Return trees in x, y, radius, height
             output_trees.append((x, y, r, height))
-
-    image[:,:,0] = 255*localMax
 
     fig7, ax7 = plt.subplots()
     im7 = ax7.imshow(image, origin='lower')
