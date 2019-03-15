@@ -153,7 +153,9 @@ def exportCourseAction():
             course_json["name"] = new_course_name
             # Need to update the metadata file or it won't show up right in the course list
             tgc_tools.set_course_metadata_name(root.filename, course_json["name"])
+        drawPlaceholder()
         tgc_tools.pack_course_file(root.filename, None, dest_file, course_json)
+        drawCourse(course_json)
 
 def autoPositionAction():
     global course_json
