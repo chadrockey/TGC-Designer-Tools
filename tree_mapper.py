@@ -55,6 +55,9 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
     # Todo is hole filling needed?
     normalized_heightmap, background_image, holeMask = infill_image.infill_image_scipy(normalized_heightmap, None, background_ratio=None, printf=printf)
 
+    # Remove any lingering nans
+    normalized_heightmap[np.isnan(normalized_heightmap)] = 0.0
+
     #fig3, ax3 = plt.subplots()
     #im3 = ax3.imshow(normalized_heightmap[:,:,0], origin='lower', cmap=cm.plasma)
 
@@ -119,7 +122,7 @@ def getTreeCoordinates(groundmap, objectmap, printf=print):
         # Now get the height of the tree
         height = getTreeHeight(normalized_heightmap, x, y)
         if height is not None and height > minimum_tree_height:
-            cv2.circle(image, (int(x), int(y)), int(r), (0, 255, 0), 1, lineType=cv2.LINE_AA)
+            #cv2.circle(image, (int(x), int(y)), int(r), (0, 255, 0), 1, lineType=cv2.LINE_AA)
             #printf((x, y, r, height))
             # Return trees in x, y, radius, height
             output_trees.append((x, y, r, height))
