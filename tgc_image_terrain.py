@@ -161,7 +161,7 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
             background_ratio = background_scale/image_scale
             printf("Background requested with scale: " + str(background_scale) + " meters")
             
-        heightmap, background, holeMask = infill_image_scipy(im, mask, background_ratio=background_ratio, printf=printf)
+        heightmap, background, holeMask = infill_image_scipy(im, mask, background_ratio=background_ratio, fill_water=options_dict.get('fill_water', False), purge_water=options_dict.get('purge_water', False), printf=printf)
     except FileNotFoundError:
         printf("Could not find heightmap or mask at: " + heightmap_dir_path)
         return course_json

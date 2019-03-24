@@ -674,6 +674,12 @@ lidarTreeCheck.deselect()
 options_entries_dict["tree_variety"] = tk.BooleanVar()
 treeVarietyCheck = Checkbutton(courseSubFrame, text="Tree Variety (Lidar and OSM)", variable=options_entries_dict["tree_variety"], fg=check_fg, bg=check_bg)
 treeVarietyCheck.deselect()
+options_entries_dict["fill_water"] = tk.BooleanVar()
+fillWaterCheck = Checkbutton(courseSubFrame, text="Fill Holes in Water", variable=options_entries_dict["fill_water"], fg=check_fg, bg=check_bg)
+fillWaterCheck.deselect()
+options_entries_dict["purge_water"] = tk.BooleanVar()
+purgeWaterCheck = Checkbutton(courseSubFrame, text="Remove All Terrain Under OSM Water", variable=options_entries_dict["purge_water"], fg=check_fg, bg=check_bg)
+purgeWaterCheck.deselect()
 
 # Pack the osmControlFrame
 courseSubFrame.pack(padx=5, pady=5, fill=X, expand=True)
@@ -684,6 +690,8 @@ Label(courseSubFrame, text="Background Scale", fg=check_fg, bg=check_bg).grid(ro
 bgentry.grid(row=4, column=1, sticky=W, padx=5)
 lidarTreeCheck.grid(row=5, columnspan=2, sticky=W, padx=5)
 treeVarietyCheck.grid(row=6, columnspan=2, sticky=W, padx=5)
+fillWaterCheck.grid(row=7, columnspan=2, sticky=W, padx=5)
+purgeWaterCheck.grid(row=8, columnspan=2, sticky=W, padx=5)
 
 # Pack the two option frames side by side
 osmControlFrame.pack(side=LEFT, anchor=N, padx=5)

@@ -10,7 +10,7 @@ def apply_mask(np_array, mask, invalid_value=math.nan):
 
 def get_binary_mask(cv2_mask):
     if cv2_mask is None:
-        return None
+        return None, None
 
     # The two reds in MS Paint are
     # Bright Red: 236, 28, 36
@@ -18,18 +18,27 @@ def get_binary_mask(cv2_mask):
     # Try to support both here
     red_pixels = np.logical_and(np.logical_and(cv2_mask[:,:,0] < 40, cv2_mask[:,:,1] < 40), cv2_mask[:,:,2] > 130)
 
+    # The blues in Paint3d are:
+    # Indigo: 62, 73, 204
+    # Turquoise: 0, 168, 243
+    blue_pixels = np.logical_and(np.logical_and(cv2_mask[:,:,0] > 200, cv2_mask[:,:,1] < 180), cv2_mask[:,:,2] < 70)
+
     # Don't infill areas painted in Red
     # Red turns to black, otherwise, white.  Black will not be infilled or sent in the output image
     remove_mask = (255.0*np.ones((cv2_mask.shape[0], cv2_mask.shape[1], 1))).astype('uint8')
     remove_mask[red_pixels] = 0
 
-    return remove_mask
+    # Preserve original terrain for areas marked in Blue
+    preserve_mask = (np.zeros((cv2_mask.shape[0], cv2_mask.shape[1], 1))).astype('uint8')
+    preserve_mask[blue_pixels] = 255
+
+    return remove_mask, preserve_mask
 
 # Uses scipy griddata to interpolate and "recompute" the terrain data based on only the valid image points
 # Seems to produce a smoother and more natural result
 # Also allows us to sample in arbitrary sizes
-def infill_image_scipy(np_array, cv2_mask, background_ratio=16.0, printf=print):
-    remove_mask = get_binary_mask(cv2_mask)
+def infill_image_scipy(np_array, cv2_mask, background_ratio=16.0, fill_water=False, purge_water=False, printf=print):
+    remove_mask, preserve_mask = get_binary_mask(cv2_mask)
 
     # Get valid pixel elevations
     full_points_list = []
@@ -80,6 +89,16 @@ def infill_image_scipy(np_array, cv2_mask, background_ratio=16.0, printf=print):
     detail_grid_z = griddata(points, values, outs, method='linear', fill_value=math.nan)
 
     if remove_mask is not None:
-        return apply_mask(detail_grid_z.reshape(np_array.shape), remove_mask), background_map, remove_mask
+        # Make sure that pixels marked red are not used
+        red_masked = apply_mask(detail_grid_z.reshape(np_array.shape), remove_mask)
+        blue_indices = preserve_mask > 0
+        # If a pixel is blue, use the original pre-infilled values
+        # This helps populate water features, etc
+        if not fill_water:
+            red_masked[blue_indices] = np_array[blue_indices]
+        if purge_water:
+            # Remove all terrain that is masked as blue
+            red_masked[blue_indices] = math.nan
+        return red_masked, background_map, remove_mask
     else:
         return detail_grid_z.reshape(np_array.shape), background_map, remove_mask

@@ -481,7 +481,7 @@ def addOSMFromXML(course_json, xml_data, options_dict={}, printf=print):
 
     return course_json
 
-def drawWayOnImage(way, color, im, pc, image_scale, x_offset=0.0, y_offset=0.0):
+def drawWayOnImage(way, color, im, pc, image_scale, thickness=-1, x_offset=0.0, y_offset=0.0):
     # Get the shape of this way and draw it as a poly
     nds = []
     for node in way.get_nodes(resolve_missing=True): # Allow automatically resolving missing nodes, but this is VERY slow with the API requests, try to request them above instead
@@ -492,9 +492,17 @@ def drawWayOnImage(way, color, im, pc, image_scale, x_offset=0.0, y_offset=0.0):
     nds = np.int32([nds]) # Bug with fillPoly, needs explict cast to 32bit
     cv2.fillPoly(im, nds, color) 
 
+    # Add option to draw shape again, but with thick line
+    # Use this to automatically expand some shapes, for example water
+    # For better masking
+    if thickness > 0:
+        # Need to draw again since fillPoly has no line thickness options that I've found
+        cv2.polylines(im, nds, True, color, thickness, lineType=cv2.LINE_AA)
+
 def addOSMToImage(ways, im, pc, image_scale, x_offset=0.0, y_offset=0.0, printf=print):
     for way in ways:
         golf_type = way.tags.get("golf", None)
+        thickness = -1
         if golf_type is not None:
             # Default to green
             color = (0, 0.75, 0.2)
@@ -502,14 +510,14 @@ def addOSMToImage(ways, im, pc, image_scale, x_offset=0.0, y_offset=0.0, printf=
                 color = (0, 1.0, 0.2)
             elif golf_type == "tee":
                 color = (0, 0.8, 0)
-            elif golf_type == "water_hazard":
+            elif golf_type == "water_hazard" or golf_type == "lateral_water_hazard":
                 color = (0, 0, 1.0)
             elif golf_type == "fairway":
                 color = color
             else:
                 continue
 
-            drawWayOnImage(way, color, im, pc, image_scale, x_offset, y_offset)
+            drawWayOnImage(way, color, im, pc, image_scale, thickness, x_offset, y_offset)
 
     # Draw bunkers last on top of all other layers as a hack until proper layer order is established here
     # Needed for things like bunkers in greens...  :\
