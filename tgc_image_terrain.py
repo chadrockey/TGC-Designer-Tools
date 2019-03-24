@@ -132,6 +132,10 @@ def set_constants(course_json, flatten_fairways=False, flatten_greens=False):
     course_json["flattenFairways"] = flatten_fairways # Needed to not flatten under fairway splines
     course_json["flattenGreens"] = flatten_greens # Needed to not flatten under green splines
 
+    # Slow down and soften greens a bit by default.   A lot of real world courses are not as firm as fast as TGC defaults
+    course_json["greenSpeed"] = 0.136312455
+    course_json["greenFirmness"] = 0.20308432
+
     # Add our own JSON element so the courses could be filtered easily
     # Am choosing an organization name so that TGC-Desinger-Tools could be forked
     course_json["gis"] = "ChadRockeyDevelopment"
