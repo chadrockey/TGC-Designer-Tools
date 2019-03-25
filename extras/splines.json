@@ -1,0 +1,65 @@
+{
+  "bunker": {
+    "pathWidth": 0.01,
+    "handleLength": 1.0,
+    "tightSplines": true,
+    "secondarySurface": "heavyrough",
+    "secondaryWidth": 2.5
+  },
+  "green": {
+    "pathWidth": 1.7,
+    "handleLength": 0.2,
+    "tightSplines": true,
+    "secondarySurface": "heavyrough",
+    "secondaryWidth": 2.5
+  },
+  "teebox": {
+    "pathWidth": 1.7,
+    "handleLength": 0.2,
+    "tightSplines": true,
+    "secondarySurface": "heavyrough",
+    "secondaryWidth": 2.5
+  },
+  "fairway": {
+    "pathWidth": 3.0,
+    "handleLength": 3.0,
+    "tightSplines": false,
+    "secondarySurface": "rough",
+    "secondaryWidth": 5.0
+  },
+  "rough": {
+    "pathWidth": 1.7,
+    "handleLength": 3.0,
+    "tightSplines": false,
+    "secondarySurface": "",
+    "secondaryWidth": 0.0
+  },
+  "heavyrough": {
+    "pathWidth": 1.7,
+    "handleLength": 3.0,
+    "tightSplines": false,
+    "secondarySurface": "",
+    "secondaryWidth": 0.0
+  },
+  "cartpath": {
+    "pathWidth": 2.0,
+    "handleLength": 4.0,
+    "tightSplines": false,
+    "secondarySurface": "",
+    "secondaryWidth": 0.0
+  },
+  "walkingpath": {
+    "pathWidth": 1.7,
+    "handleLength": 2.0,
+    "tightSplines": false,
+    "secondarySurface": "",
+    "secondaryWidth": 0.0
+  },
+  "placeholder": {
+    "pathWidth": 0.01,
+    "handleLength": 0.2,
+    "tightSplines": true,
+    "secondarySurface": "",
+    "secondaryWidth": 0.0
+  }
+}

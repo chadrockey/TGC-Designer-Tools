@@ -220,6 +220,10 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
     # Download OpenStreetMaps Data for this smaller area
     if options_dict.get('use_osm', True):
         printf("Adding golf features to lidar data")
+
+        # Get spline configuration file, if present
+        spline_json = tgc_tools.get_spline_configuration_json(heightmap_dir_path)
+
         # Use this data to create playable courses automatically
         upper_left_enu = pc.ulENU()
         lower_right_enu = pc.lrENU()
@@ -228,7 +232,7 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         # Order is South, West, North, East
         result = OSMTGC.getOSMData(lower_right_latlon[0], upper_left_latlon[1], upper_left_latlon[0], lower_right_latlon[1], printf=printf)
         osm_trees = OSMTGC.addOSMToTGC(course_json, pc, result, x_offset=float(options_dict.get('adjust_ew', 0.0)), y_offset=float(options_dict.get('adjust_ns', 0.0)), \
-                                                         options_dict=options_dict, printf=printf)
+                                                         options_dict=options_dict, spline_configuration_json=spline_json, printf=printf)
 
         if len(osm_trees) > 0:
             printf("Adding trees from OpenStreetMap")

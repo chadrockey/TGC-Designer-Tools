@@ -152,6 +152,14 @@ def get_metadata_json(course_directory):
         
     return metadata_json
 
+def get_spline_configuration_json(course_directory):
+    course_dir = Path(course_directory)
+    spline_json = None
+    with (course_dir / 'splines.json').open('r') as f:
+        spline_json = json.loads(f.read())  
+        
+    return spline_json
+
 def write_course_json(course_directory, course_json):
     course_dir = Path(course_directory)
     with (course_dir / 'unpacked/course_description/course_description.json').open('w') as f:
