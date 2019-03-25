@@ -161,6 +161,7 @@ def newSpline(points, pathWidth=0.01, shrink_distance=None, handleLength=0.5, ti
 
 def newBunker(points):
     global spline_configuration
+    spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("bunker", None)
     # Very tight shaped to make complex curves
@@ -170,6 +171,7 @@ def newBunker(points):
 
 def newGreen(points):
     global spline_configuration
+    spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("green", None)
     green = newSpline(points, pathWidth = 1.7, handleLength=0.2, tightSplines=True, secondarySurface="heavyrough", secondaryWidth=2.5, spline_json=spline_json)
@@ -178,6 +180,7 @@ def newGreen(points):
 
 def newTeeBox(points):
     global spline_configuration
+    spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("teebox", None)
     teebox = newSpline(points, pathWidth = 1.7, handleLength=0.2, tightSplines=True, secondarySurface="heavyrough", secondaryWidth=2.5, spline_json=spline_json)
@@ -186,6 +189,7 @@ def newTeeBox(points):
 
 def newFairway(points):
     global spline_configuration
+    spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("fairway", None)
     fw = newSpline(points, pathWidth = 3.0, handleLength=3.0, tightSplines=False, secondarySurface="rough", secondaryWidth=5.0, spline_json=spline_json)
@@ -194,6 +198,7 @@ def newFairway(points):
 
 def newRough(points):
     global spline_configuration
+    spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("rough", None)
     rh = newSpline(points, pathWidth = 1.7, handleLength=3.0, tightSplines=False, secondarySurface="", secondaryWidth=0.0, spline_json=spline_json)
@@ -204,6 +209,7 @@ def newRough(points):
 
 def newHeavyRough(points):
     global spline_configuration
+    spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("heavyrough", None)
     hr = newSpline(points, pathWidth = 1.7, handleLength=3.0, tightSplines=False, secondarySurface="", secondaryWidth=0.0, spline_json=spline_json)
@@ -214,6 +220,7 @@ def newHeavyRough(points):
 
 def newCartPath(points, area=False):
     global spline_configuration
+    spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("cartpath", None)
     pathWidth = 2.0
@@ -238,6 +245,7 @@ def newCartPath(points, area=False):
 
 def newWalkingPath(points, area=False):
     global spline_configuration
+    spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("walkingpath", None)
     # Minimum width that will render in meters
@@ -262,6 +270,7 @@ def newWalkingPath(points, area=False):
 
 def newWaterHazard(points, area=True):
     global spline_configuration
+    spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("placeholder", None)
     # Add placeholder for water hazard.
@@ -286,6 +295,7 @@ def newWaterHazard(points, area=True):
 
 def newBuilding(points):
     global spline_configuration
+    spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("placeholder", None)
     # Add placeholder for buildings
@@ -298,6 +308,7 @@ def newBuilding(points):
 
 def newForest(points):
     global spline_configuration
+    spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("placeholder", None)
     # Add placeholder spline for naturaL:wood in OSM
