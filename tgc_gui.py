@@ -675,10 +675,10 @@ options_entries_dict["tree_variety"] = tk.BooleanVar()
 treeVarietyCheck = Checkbutton(courseSubFrame, text="Tree Variety (Lidar and OSM)", variable=options_entries_dict["tree_variety"], fg=check_fg, bg=check_bg)
 treeVarietyCheck.deselect()
 options_entries_dict["fill_water"] = tk.BooleanVar()
-fillWaterCheck = Checkbutton(courseSubFrame, text="Fill Holes in Water", variable=options_entries_dict["fill_water"], fg=check_fg, bg=check_bg)
+fillWaterCheck = Checkbutton(courseSubFrame, text="Fill Holes Under Blue Mask", variable=options_entries_dict["fill_water"], fg=check_fg, bg=check_bg)
 fillWaterCheck.deselect()
 options_entries_dict["purge_water"] = tk.BooleanVar()
-purgeWaterCheck = Checkbutton(courseSubFrame, text="Remove All Terrain Under OSM Water", variable=options_entries_dict["purge_water"], fg=check_fg, bg=check_bg)
+purgeWaterCheck = Checkbutton(courseSubFrame, text="Remove All Terrain Under Blue Mask", variable=options_entries_dict["purge_water"], fg=check_fg, bg=check_bg)
 purgeWaterCheck.deselect()
 
 # Pack the osmControlFrame
