@@ -73,10 +73,14 @@ def unpack_course_file(course_directory, course_file=None):
         course_metadata64 = course_json["binaryData"]["CourseMetadata"]
 
         course_description_json = base64GZDecode(course_description64).decode('utf-16')
+        # Remove potential strange unicode characters like u200b
+        course_description_json = (course_description_json.encode('ascii', 'ignore')).decode("utf-8")
         with (description_dir / 'course_description.json').open('w') as f:
             f.write(course_description_json)
 
         thumbnail_json = base64GZDecode(thumbnail64).decode('utf-16')
+        # Remove potential strange unicode characters like u200b
+        thumbnail_json = (thumbnail_json.encode('ascii', 'ignore')).decode("utf-8")
         t_json = json.loads(thumbnail_json)
         with (thumbnail_dir / 'thumbnail.json').open('w') as f:
             f.write(thumbnail_json)
@@ -85,6 +89,8 @@ def unpack_course_file(course_directory, course_file=None):
             f.write(thumbnail_jpg)
 
         course_metadata_json = base64GZDecode(course_metadata64).decode('utf-16')
+        # Remove potential strange unicode characters like u200b
+        course_metadata_json = (course_metadata_json.encode('ascii', 'ignore')).decode("utf-8")
         with (metadata_dir / 'course_metadata.json').open('w') as f:
             f.write(course_metadata_json)        
 
