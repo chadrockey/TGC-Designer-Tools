@@ -253,6 +253,15 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
 
     return course_json
 
+def generate_flat_course(course_json, xml_data, options_dict={}, printf=print):
+    course_json, osm_trees = OSMTGC.addOSMFromXML(course_json, xml_data, options_dict=options_dict, printf=printf)
+    if len(osm_trees) > 0:
+        printf("Adding trees from OpenStreetMap")
+        for o in get_trees(course_json['theme'], options_dict.get('tree_variety', False), osm_trees):
+            course_json["placedObjects2"].append(o)
+
+    return course_json
+
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("Usage: python program.py COURSE_DIRECTORY HEIGHTMAP_DIRECTORY")

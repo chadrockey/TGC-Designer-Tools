@@ -410,7 +410,7 @@ def importOSMFile(options_entries_dict, printf):
             xml_data = f.read()
             printf("Loading OpenStreetMap Data from " + str(osm_file))
             drawPlaceholder()
-            course_json = OSMTGC.addOSMFromXML(course_json, xml_data, options_dict=options_dict, printf=printf)
+            course_json = tgc_image_terrain.generate_flat_course(course_json, xml_data, options_dict=options_dict, printf=printf)
             drawCourse(course_json)
             printf("Done Rendering Course Preview")
 

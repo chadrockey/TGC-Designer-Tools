@@ -522,10 +522,10 @@ def addOSMFromXML(course_json, xml_data, options_dict={}, printf=print):
     pc = GeoPointCloud()
     pc.addFromLatLon((latmin, lonmin), (latmax, lonmax), printf=printf)
 
-    addOSMToTGC(course_json, pc, result, x_offset=float(options_dict.get('adjust_ew', 0.0)), y_offset=float(options_dict.get('adjust_ns', 0.0)), \
+    trees = addOSMToTGC(course_json, pc, result, x_offset=float(options_dict.get('adjust_ew', 0.0)), y_offset=float(options_dict.get('adjust_ns', 0.0)), \
                 options_dict=options_dict, printf=printf)
 
-    return course_json
+    return course_json, trees
 
 def drawWayOnImage(way, color, im, pc, image_scale, thickness=-1, x_offset=0.0, y_offset=0.0):
     # Get the shape of this way and draw it as a poly
