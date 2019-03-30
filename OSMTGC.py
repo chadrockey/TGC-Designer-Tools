@@ -446,8 +446,13 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
             elif golf_type == "clubhouse" and options_dict.get('building', True):
                 course_json["surfaceSplines"].append(newBuilding(nds))
             elif golf_type == "hole" and options_dict.get('hole', True):
-                par = int(way.tags.get("par", -1))
-                hole_num = int(way.tags.get("ref", -1))
+                try:
+                    par = int(way.tags.get("par", -1))
+                    hole_num = int(way.tags.get("ref", -1))
+                except:
+                    printf("ERROR: There is an invalid character saved to OpenStreetMap for par or hole number: " + str(way.tags))
+                    par = -1
+                    hole_num = -1
                 hole = newHole(par, nds)
                 if hole is not None:
                     if hole_num == 0:
