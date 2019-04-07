@@ -85,6 +85,9 @@ def infill_image_scipy(np_array, cv2_mask, background_ratio=16.0, fill_water=Fal
         background_grid_z = griddata(full_points_list, full_values_list, background_outs, method='linear', fill_value=-1.0)
         background_map = background_grid_z.reshape((background_row_count, background_col_count))
 
+        if preserve_mask is not None:
+            background_preserve_mask = cv2.resize(preserve_mask, (background_col_count, background_row_count), interpolation = cv2.INTER_AREA)
+
     printf("Filling missing data in heightmap")
     detail_grid_z = griddata(points, values, outs, method='linear', fill_value=math.nan)
 
@@ -99,6 +102,11 @@ def infill_image_scipy(np_array, cv2_mask, background_ratio=16.0, fill_water=Fal
         if purge_water:
             # Remove all terrain that is masked as blue
             red_masked[blue_indices] = math.nan
+
+        # Don't add background pixels where the mask was blue
+        if background_map is not None and background_preserve_mask is not None:
+            background_blue_indices = background_preserve_mask > 0
+            background_map[background_blue_indices] = math.nan
         return red_masked, background_map, remove_mask
     else:
         return detail_grid_z.reshape(np_array.shape), background_map, remove_mask
