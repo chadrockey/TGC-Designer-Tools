@@ -446,6 +446,16 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
             elif golf_type == "clubhouse" and options_dict.get('building', True):
                 course_json["surfaceSplines"].append(newBuilding(nds))
             elif golf_type == "hole" and options_dict.get('hole', True):
+                # Only add holes for the course we're interested in
+                name_filter = options_dict.get('hole_name_filter', None)
+                hole_name = way.tags.get("name", "")
+                if name_filter is not None:
+                    if name_filter.lower() not in hole_name.lower():
+                        if hole_name:
+                            printf("Skipping Hole with Name: " + hole_name)
+                        else:
+                            printf("Skipping Unnamed Hole")
+                        continue
                 try:
                     par = int(way.tags.get("par", -1))
                     hole_num = int(way.tags.get("ref", -1))
