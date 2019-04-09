@@ -80,3 +80,12 @@ skinny_trees = {
     14: [12, 15],
     15: [2, 3, 8, 9, 10, 22],
 }
+
+tee_colors = {
+    4: "red",
+    0: "green",
+    3: "white",
+    2: "blue",
+    1: "black",
+    5: "gold"
+}

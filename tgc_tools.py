@@ -188,6 +188,40 @@ def set_course_metadata_name(course_directory, new_course_name):
     metadata_json["name"] = new_course_name
     write_metadata_json(course_directory, metadata_json)
 
+def waypoint_dist(p1, p2):
+    dx = p1["x"] - p2["x"]
+    dz = p1["z"] - p2["z"]
+    return math.sqrt(dx**2 + dz**2)
+
+def get_hole_information(course_json):
+    pars = []
+    tees = [[],[],[],[],[]]
+
+    for h in course_json["holes"]:
+        # Par is same for all tees
+        par = h["creatorDefinedPar"]
+        if par <= 0: # Check if user specified par
+            par = h["par"]
+        pars.append(par)
+
+        # Get common yardage for all tees
+        waypoints = h["waypoints"][1:] # Every point but the first point
+        common_distance = 0.0
+        for i in range(0, len(waypoints)-1):
+            common_distance += waypoint_dist(waypoints[i], waypoints[i+1])
+
+        # Get specific yardage for all tees, record total yardage for every possible tee
+        for i in range(0, 5):
+            if i < len(h["teePositions"]):
+                # Convert to yards, from meters
+                total_dist = common_distance + waypoint_dist(h["teePositions"][i], waypoints[0])
+                tees[i].append(1.09*total_dist)
+            else:
+                tees[i].append(None)
+
+    return pars, tees
+
+
 def strip_terrain(course_json, output_file):
     # Copy existing terrain and write to disk
     output_data = {}

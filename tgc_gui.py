@@ -13,6 +13,7 @@ import numpy
 from PIL import Image, ImageTk
 import string
 
+import tgc_definitions
 import tgc_tools
 import lidar_map_api
 import tgc_image_terrain
@@ -33,6 +34,9 @@ canvas = None
 canvas_image = None
 course_json = None
 
+scorecard = None
+inner_frame = None # Scorecard inner frame
+
 def drawPlaceholder():
     global root
     global canvas
@@ -40,6 +44,136 @@ def drawPlaceholder():
     default_im = ImageTk.PhotoImage(image=iim)
     canvas.itemconfig(canvas_image, image = default_im)
     root.update()
+
+def scorecardSumList(l):
+    front = 0
+    back = 0
+    total = 0
+    output = []
+    for i in range(0, len(l)):
+        value = math.ceil(l[i])
+        total += value
+        if i < 9:
+            front += value
+        else:
+            back += value
+        output.append(value)
+        if i == 8:
+            output.append(front)
+    if back > 0:
+        output.append(back)
+    output.append(total)
+
+    return output
+
+def drawScorecard(course_json):
+    global scorecard
+    global inner_frame
+
+    # Which Tkinter colors to draw on the chart
+    hole_color = "snow"
+    par_color = "bisque"
+    tee_color_order = course_json["teeColours"]
+    tee_colors_dict = {
+        "red":"firebrick1",
+        "white":"floral white",
+        "blue":"navy",
+        "black":"gray10",
+        "green":"dark green",
+        "gold":"gold"
+    }
+    tee_text_colors_dict = {
+        "red":"black",
+        "white":"black",
+        "blue":"white",
+        "black":"white",
+        "green":"white",
+        "gold":"black"
+    }
+
+    # Determine tee colors for chart
+    tee_colors = []
+    tee_text_colors = []
+    for color in tee_color_order:
+        color_name = tgc_definitions.tee_colors[color]
+        tee_colors.append(tee_colors_dict[color_name])
+        tee_text_colors.append(tee_text_colors_dict[color_name])
+
+    # Clear the chart each time the course is redrawn
+    if inner_frame is not None:
+        inner_frame.destroy()
+    inner_frame = Frame(scorecard, bg="darkgrey")
+    inner_frame.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
+
+    # Par and yardages values from holes
+    pars, tees = tgc_tools.get_hole_information(course_json)
+
+    # Determine number of valid tee sets
+    # And fill in missing information for tees that weren't placed
+    valid_tees = []
+    for tee in tees:
+        empty_tee = all(v is None for v in tee)
+        if not empty_tee:
+            valid_tees.append(tee)
+    
+    for i in range(0, len(pars)):
+        last_valid_distance = 0.0
+        for j in range(0, len(valid_tees)):
+            if valid_tees[j][i] is not None:
+                last_valid_distance = valid_tees[j][i]
+            else:
+                valid_tees[j][i] = last_valid_distance
+
+    scorecard_pars = scorecardSumList(pars)
+    scorecard_tees = []
+    for t in valid_tees:
+        scorecard_tees.append(scorecardSumList(t))
+
+    # Generate top holes label
+    holes = []
+    for i in range(0, len(pars)):
+        holes.append(i+1)
+        if i == 8:
+            holes.append("out")
+    if len(pars) > 9:
+        holes.append("in")
+    holes.append("tot")
+
+    h = Entry(inner_frame, justify='center', fg="black", readonlybackground=hole_color, width=10)
+    h.insert(0, "HOLE")
+    h.configure(state="readonly")
+    h.grid(row=0, column=0)
+
+    h = Entry(inner_frame, justify='center', fg="black", readonlybackground=par_color, width=10)
+    h.insert(0, "PAR")
+    h.configure(state="readonly")
+    h.grid(row=1, column=0)
+
+    for j in range(0, len(scorecard_tees)):
+        h = Entry(inner_frame, justify='center', fg=tee_text_colors[j], readonlybackground=tee_colors[j], width=10)
+        h.insert(0, "TEE SET")
+        h.configure(state="readonly")
+        h.grid(row=2+j, column=0)
+
+    for i in range(0, len(holes)):
+        # Append hole numbers
+        h = Entry(inner_frame, justify='center', fg="black", readonlybackground=hole_color, width=5)
+        h.insert(0, str(holes[i]))
+        h.configure(state="readonly")
+        h.grid(row=0, column=i+1)
+
+        # Append par values
+        p = Entry(inner_frame, justify='center', fg="black", readonlybackground=par_color, width=5)
+        p.insert(0, str(scorecard_pars[i]))
+        p.configure(state="readonly")
+        p.grid(row=1, column=i+1)
+
+        # Append yardages
+        for j in range(0, len(scorecard_tees)):
+            p = Entry(inner_frame, justify='center', fg=tee_text_colors[j], readonlybackground=tee_colors[j], width=5)
+            p.insert(0, str(scorecard_tees[j][i]))
+            p.configure(state="readonly")
+            p.grid(row=2+j, column=i+1)
 
 def drawCourse(cjson):
     global root
@@ -52,6 +186,8 @@ def drawCourse(cjson):
 
     canvas.img = cim # Need to save reference to ImageTK
     canvas.itemconfig(canvas_image, image = cim)
+
+    drawScorecard(cjson)
     root.update()
 
 def getCourseDirectory(output):
@@ -441,10 +577,12 @@ s.configure('new.TFrame', background='#A9A9A9')
 tools = ttk.Frame(nb, style='new.TFrame')
 lidar = ttk.Frame(nb, style='new.TFrame')
 course = ttk.Frame(nb, style='new.TFrame')
+scorecard = ttk.Frame(nb, style='new.TFrame')
 nb.pack(fill=BOTH, expand=1)
 nb.add(tools, text='Course Tools')
 nb.add(lidar, text='Process Lidar')
 nb.add(course, text='Import Terrain and Features')
+nb.add(scorecard, text="Scorecard")
 
 ## Tools Tab
 image_frame = Frame(tools, width=image_width, height=image_height)
