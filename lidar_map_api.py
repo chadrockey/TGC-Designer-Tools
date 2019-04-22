@@ -233,7 +233,7 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
     tgc_tools.create_directory(output_dir_path)
 
     # Use provided las or get las files
-    pc = load_usgs_directory(lidar_dir_path, force_epsg=force_epsg, force_unit=force_unit, printf=printf)
+    pc = load_usgs_directory_geotiff(lidar_dir_path, force_epsg=force_epsg, force_unit=force_unit, printf=printf)
 
     if pc is None:
         # Can't do anything with nothing

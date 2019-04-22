@@ -404,3 +404,97 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
     pc.computeOrigin()
     pc.removeBias()
     return pc
+
+from PIL import Image
+
+def load_usgs_directory_geotiff(d, force_epsg=None, force_unit=None, printf=print):
+    pc = GeoPointCloud()
+
+    for filename in os.listdir(d):
+        # Only parse laz and las files
+        if not filename.endswith('.tif'): continue
+
+        printf("Processing: " + filename)
+
+        # Use laspy to load the point data
+        im = Image.open(d+"/"+filename)
+        print("Dimensions : {}".format(im.size))
+        for id in im.tag:
+            print("{} : {}".format(id, im.tag[id]))
+
+
+            if id == 33922:
+                upper_left = (im.tag[id][3], im.tag[id][4])
+
+        try:
+
+
+            # Needed from metadata for all files
+            proj = None
+            unit = 0.0 # Don't assume unit
+
+            if force_epsg is not None:
+                try:
+                    proj, unit = proj_from_epsg(force_epsg, printf=printf)
+                except:
+                    # Prj2epsg may be down, don't verify epsg data
+                    printf("prj2epsg.org may be down, using backup for force_epsg")
+                    proj, unit = get_proj_and_unit_from_wkt(None, force_epsg=force_epsg, printf=printf)
+
+            printf("Unit in use is " + str(unit))
+            printf("Proj4 : " + str(proj))
+
+            converted_x = []
+            converted_y = []
+            converted_z = []
+            intensity = []
+            classification = []
+
+            for j in range(0, im.height):
+                for i in range(0, im.width):
+                    converted_x.append(upper_left[0] + 1.0 * i)
+                    converted_y.append(upper_left[1] - 1.0 * j)
+                    converted_z.append(im.getpixel((i,j)))
+                    intensity.append(0)
+                    classification.append(2)
+
+            # Check if coordinate projection needs converted
+            if not pc.proj:
+                # First dataset will set the coordinate system
+                pc.proj = proj
+            elif str(pc.proj) != str(proj):
+                printf("Warning: Data has different projection, re-projecting coordinates.  This may take some time.")
+                
+                converted_x = []
+                converted_y = []
+                converted_z = []
+
+                for x, y, z in zip(scaled_x, scaled_y, scaled_z):
+                    x2, y2, z2 = pyproj.transform(proj, pc.proj, x, y, z)
+                    converted_x.append(x2)
+                    converted_y.append(y2)
+                    converted_z.append(z2)
+
+            pc.addDataSet(numpy.array(converted_x), numpy.array(converted_y), numpy.array(converted_z), numpy.array(intensity), numpy.array(classification).astype(int))
+        except HTTPError as e:
+            printf("Could not load " + filename)
+            printf("We rely on a web service to get lidar information")
+            printf("If you can't reach prj2epsg.org, lidar import won't work for now")
+            printf("""Failed to retrieve data from prj2epsg.org API:\n
+                        Status: %s \n
+                        Message: %s""" % (e.code, e.reason))
+        except URLError as e:
+            printf("Could not load " + filename)
+            printf("We rely on a web service to get lidar information")
+            printf("If you can't reach prj2epsg.org, lidar import won't work for now")
+            printf("""Failed to retrieve data from prj2epsg.org API:\n
+                        Message: %s""" % (e.reason))
+
+    if not pc.count:
+        printf("No valid lidar files found, no action taken")
+        printf("Directory was: " + d)
+        return None
+
+    pc.computeOrigin()
+    pc.removeBias()
+    return pc
