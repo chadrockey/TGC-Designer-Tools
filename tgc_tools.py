@@ -247,6 +247,28 @@ def insert_terrain(course_json, input_file):
 
     return course_json
 
+def strip_holes(course_json, output_file):
+    # Copy existing holes and write to disk
+    output_data = {}
+    output_data['holes'] = course_json['holes']
+
+    print("Saving Holes as " + output_file)
+    np.save(output_file, output_data)
+
+    # Clear existing holes
+    course_json['holes'] = []
+
+    return course_json
+
+def insert_holes(course_json, input_file):
+    print("Loading holes from: " + input_file)
+    read_dictionary = np.load(input_file).item()
+
+    # Replace our holes from those in the file
+    course_json['holes'] = read_dictionary['holes']
+
+    return course_json
+
 # Shift terrain and features are separate in case they need to be lined up with each other
 def shift_terrain(course_json, easting_shift, northing_shift):
     for i in course_json["userLayers"]["height"]:

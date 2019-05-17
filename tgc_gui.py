@@ -354,16 +354,32 @@ numpy_types = [
     ('Golf Course Features', '*.npy'), 
     ('All files', '*'), 
 ]
+numpy_terrain_types = [
+    ('Golf Course Terrain', '*.terrain.npy'), 
+    ('All files', '*'), 
+]
+numpy_holes_types = [
+    ('Golf Course Holes', '*.holes.npy'), 
+    ('All files', '*'), 
+]
 
 def separateAction(stype="terrain"):
     global course_json
     if stype == "terrain":
         name = "Terrain"
         f = tgc_tools.strip_terrain
+        ext = ".terrain.npy"
+        filetypes = numpy_terrain_types
+    elif stype == "holes":
+        name = "Holes"
+        f = tgc_tools.strip_holes
+        ext = ".holes.npy"
+        filetypes = numpy_holes_types
     else:
         print("No action taken: Unknown separate type: " + stype)
+        return
 
-    dest_file = tk.filedialog.asksaveasfilename(title=name+' filename', defaultextension='.npy', initialdir=root.filename, confirmoverwrite=True, filetypes=numpy_types)
+    dest_file = tk.filedialog.asksaveasfilename(title=name+' filename', defaultextension=ext, initialdir=root.filename, confirmoverwrite=True, filetypes=filetypes)
 
     if dest_file:
         drawPlaceholder()
@@ -375,10 +391,18 @@ def insertAction(stype="terrain"):
     if stype == "terrain":
         name = "Terrain"
         f = tgc_tools.insert_terrain
+        ext = ".terrain.npy"
+        filetypes = numpy_terrain_types
+    elif stype == "holes":
+        name = "Holes"
+        f = tgc_tools.insert_holes
+        ext = ".holes.npy"
+        filetypes = numpy_holes_types
     else:
         print("No action taken: Unknown insert type: " + stype)
+        return
 
-    input_file = tk.filedialog.askopenfilename(title=name+' filename', defaultextension='npy', initialdir=root.filename, filetypes=numpy_types)
+    input_file = tk.filedialog.askopenfilename(title=name+' filename', defaultextension=ext, initialdir=root.filename, filetypes=filetypes)
 
     if input_file:
         drawPlaceholder()
@@ -658,10 +682,20 @@ etb = Button(elevate_frame, text="Shift Elevations", command=partial(elevateActi
 etb.grid(row=0, column=2, padx=10, pady=5)
 elevate_frame.pack(pady=5)
 
-stb = Button(tool_buttons_frame, text="Separate Terrain", command=partial(separateAction, "terrain"))
-stb.pack(pady=5)
-itb = Button(tool_buttons_frame, text="Insert Terrain File", command=partial(insertAction, "terrain"))
-itb.pack(pady=5)
+terrain_frame = Frame(tool_buttons_frame, bg=bg_color)
+stb = Button(terrain_frame, text="Separate Terrain", command=partial(separateAction, "terrain"))
+stb.pack(side=LEFT, padx=5, pady=5)
+itb = Button(terrain_frame, text="Insert Terrain File", command=partial(insertAction, "terrain"))
+itb.pack(side=LEFT, pady=5)
+terrain_frame.pack()
+
+holes_frame = Frame(tool_buttons_frame, bg=bg_color)
+shb = Button(holes_frame, text="Separate Holes", command=partial(separateAction, "holes"))
+shb.pack(side=LEFT, padx=5, pady=5)
+ihb = Button(holes_frame, text="Insert Holes File", command=partial(insertAction, "holes"))
+ihb.pack(side=LEFT, pady=5)
+holes_frame.pack()
+
 ccb = Button(tool_buttons_frame, text="Combine Course Directory", command=combineAction)
 ccb.pack(pady=5)
 
