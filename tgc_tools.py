@@ -195,6 +195,7 @@ def waypoint_dist(p1, p2):
 
 def get_hole_information(course_json):
     pars = []
+    pin_counts = []
     tees = [[],[],[],[],[]]
 
     for h in course_json["holes"]:
@@ -203,6 +204,8 @@ def get_hole_information(course_json):
         if par <= 0: # Check if user specified par
             par = h["par"]
         pars.append(par)
+
+        pin_counts.append(len(h["pinPositions"]))
 
         # Get common yardage for all tees
         waypoints = h["waypoints"][1:] # Every point but the first point
@@ -219,7 +222,7 @@ def get_hole_information(course_json):
             else:
                 tees[i].append(None)
 
-    return pars, tees
+    return pars, pin_counts, tees
 
 
 def strip_terrain(course_json, output_file):

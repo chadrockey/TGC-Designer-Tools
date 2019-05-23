@@ -73,6 +73,7 @@ def drawScorecard(course_json):
     # Which Tkinter colors to draw on the chart
     hole_color = "snow"
     par_color = "bisque"
+    pin_color = "gray40"
     tee_color_order = course_json["teeColours"]
     tee_colors_dict = {
         "red":"firebrick1",
@@ -106,7 +107,7 @@ def drawScorecard(course_json):
     inner_frame.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
 
     # Par and yardages values from holes
-    pars, tees = tgc_tools.get_hole_information(course_json)
+    pars, pin_counts, tees = tgc_tools.get_hole_information(course_json)
 
     # Determine number of valid tee sets
     # And fill in missing information for tees that weren't placed
@@ -129,15 +130,20 @@ def drawScorecard(course_json):
     for t in valid_tees:
         scorecard_tees.append(scorecardSumList(t))
 
-    # Generate top holes label
+    # Generate top holes label and pin counts
     holes = []
+    pins = []
     for i in range(0, len(pars)):
         holes.append(i+1)
+        pins.append(pin_counts[i])
         if i == 8:
             holes.append("out")
+            pins.append("")
     if len(pars) > 9:
         holes.append("in")
+        pins.append("")
     holes.append("tot")
+    pins.append("")
 
     h = Entry(inner_frame, justify='center', fg="black", readonlybackground=hole_color, width=10)
     h.insert(0, "HOLE")
@@ -149,11 +155,16 @@ def drawScorecard(course_json):
     h.configure(state="readonly")
     h.grid(row=1, column=0)
 
+    h = Entry(inner_frame, justify='center', fg="black", readonlybackground=pin_color, width=10)
+    h.insert(0, "NUM PINS")
+    h.configure(state="readonly")
+    h.grid(row=2, column=0)
+
     for j in range(0, len(scorecard_tees)):
         h = Entry(inner_frame, justify='center', fg=tee_text_colors[j], readonlybackground=tee_colors[j], width=10)
         h.insert(0, "TEE SET")
         h.configure(state="readonly")
-        h.grid(row=2+j, column=0)
+        h.grid(row=3+j, column=0)
 
     for i in range(0, len(holes)):
         # Append hole numbers
@@ -168,12 +179,18 @@ def drawScorecard(course_json):
         p.configure(state="readonly")
         p.grid(row=1, column=i+1)
 
+        # Append number of pins - useful for working around simulator bug
+        p = Entry(inner_frame, justify='center', fg="black", readonlybackground=pin_color, width=5)
+        p.insert(0, str(pins[i]))
+        p.configure(state="readonly")
+        p.grid(row=2, column=i+1)
+
         # Append yardages
         for j in range(0, len(scorecard_tees)):
             p = Entry(inner_frame, justify='center', fg=tee_text_colors[j], readonlybackground=tee_colors[j], width=5)
             p.insert(0, str(scorecard_tees[j][i]))
             p.configure(state="readonly")
-            p.grid(row=2+j, column=i+1)
+            p.grid(row=3+j, column=i+1)
 
 def drawCourse(cjson):
     global root
