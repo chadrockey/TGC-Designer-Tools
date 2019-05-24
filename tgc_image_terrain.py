@@ -127,7 +127,7 @@ def get_lidar_trees(theme, tree_variety, lidar_trees, pc, mask, mask_pc, image_s
     return get_trees(theme, tree_variety, trees)
 
 # Set various constants that we need
-def set_constants(course_json, flatten_fairways=False, flatten_greens=False):
+def set_constants(course_json, flatten_fairways=False, flatten_greens=False, course_latitude=None, printf=print):
     # These only work if the terrain is made from scult (red brushes) rather than landscape (blue brushes)
     course_json["flattenFairways"] = flatten_fairways # Needed to not flatten under fairway splines
     course_json["flattenGreens"] = flatten_greens # Needed to not flatten under green splines
@@ -145,6 +145,25 @@ def set_constants(course_json, flatten_fairways=False, flatten_greens=False):
     course_json["teeRadius"] = 0.0
     course_json["hazardGreenCount"] = 0.0
     course_json["hazardFairwayCount"] = 0.0
+
+    # Set lighting parameters based on the actual position of the course
+    course_json["sunOrientation"] = 0.0 # Set so in game North aligns to true North
+    course_json["sunInclination"] = 45.0 # Default halfway position
+    # Try to set inclination based on latitude, if provided
+    # Based on: http://www.physicalgeography.net/fundamentals/6h.html
+    if course_latitude is not None:
+        earth_declination = 23.5
+        if course_latitude >= earth_declination: # Above the Tropic of Cancer, use June Solstice position
+            course_json["sunInclination"] = 90.0 - float(course_latitude) + earth_declination
+        elif course_latitude >= 0.0: # Equation to the Tropic of Cancer, use Equinox position
+            course_json["sunInclination"] = 90.0 - float(course_latitude)
+        elif course_latitude >= -1.0*earth_declination: # Equation to the Tropic of Capricorn, use Equinox position
+            # You can't set above 90 in game, but we can here.  Do this so that North and Sunrise to the East are still correct.
+            course_json["sunInclination"] = 90.0 - float(course_latitude)
+        else: # Below the Tropic of Caprion.  Use December Solstice position
+            # You can't set above 90 in game, but we can here.  Do this so that North and Sunrise to the East are still correct.
+            course_json["sunInclination"] = 90.0 + -1.0*float(course_latitude) - earth_declination
+        printf("For latitude " + str(course_latitude) + ": Setting sun angle to: " + str(course_json["sunInclination"]))
 
     # Add our own JSON element so the courses could be filtered easily
     # Am choosing an organization name so that TGC-Desinger-Tools could be forked
@@ -181,7 +200,7 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         return course_json
 
     # Clear existing terrain
-    course_json = set_constants(course_json, options_dict.get('flatten_fairways', False), options_dict.get('flatten_greens', False))
+    course_json = set_constants(course_json, options_dict.get('flatten_fairways', False), options_dict.get('flatten_greens', False), read_dictionary['origin'][0], printf=printf)
     course_json["userLayers"]["height"] = []
     course_json["userLayers"]["terrainHeight"] = []
     course_json["placedObjects2"] = []
