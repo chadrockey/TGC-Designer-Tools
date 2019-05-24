@@ -20,7 +20,7 @@ import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
 import OSMTGC
 
-TGC_GUI_VERSION = "0.2.5"
+TGC_GUI_VERSION = "0.3.0"
 
 image_width = 500
 image_height = 500
