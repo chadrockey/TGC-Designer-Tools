@@ -300,6 +300,10 @@ def exportCourseAction():
 
     dest_file = tk.filedialog.asksaveasfilename(title='Save Course As', defaultextension='.course', initialdir=root.filename, confirmoverwrite=True, filetypes=course_types)
 
+    for h in course_json["holes"]:
+        if len(h["waypoints"]) > 3:
+            h["waypoints"] = [h["waypoints"][0], h["waypoints"][1], h["waypoints"][-1]]
+
     if dest_file:
         new_course_name = course_name_var.get()
         if len(new_course_name) > 0:
