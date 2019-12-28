@@ -360,7 +360,7 @@ def getOSMData(bottom_lat, left_lon, top_lat, right_lon, printf=print):
         query = "(node(" + coord_string + ");way(" + coord_string + "););out;"
         printf("OpenStreetMap Overpass query: " + query)
         return op.query(query) # Request both nodes and ways for the region of interest using a union
-    except overpy.OverpassGatewayTimeout:
+    except overpy.exception.OverPyException:
         printf("OpenStreetMap servers are too busy right now.  Try running this tool later.")
         return None
 
@@ -415,7 +415,7 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
         try:
             for node in way.get_nodes(resolve_missing=True): # Allow automatically resolving missing nodes, but this is VERY slow with the API requests, try to request beforehand
                 nds.append(geopointcloud.latlonToTGC(node.lat, node.lon, x_offset, y_offset))
-        except overpy.OverpassGatewayTimeout:
+        except overpy.exception.OverPyException:
             printf("OpenStreetMap servers are too busy right now.  Try running this tool later.")
             return []
         # Check this shapes bounding box against the limits of the terrain, don't draw outside this bounds
