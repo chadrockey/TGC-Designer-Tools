@@ -118,7 +118,7 @@ def convert_latlon_to_utm_espg(lat, lon):
 
 def print_failure_message(printf=print):
     printf("Could not determine lidar projection, please report an issue and send this lidar and metadata")
-    printf("Alternatively, look for something called EPSG Value in Metadata and provide EPSG and Conversion to Meters (1.0 for Meters, Approximately 0.3048 for Feet")
+    printf("Alternatively, look for something called EPSG Value in Metadata and provide EPSG.")
     return None
 
 def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):

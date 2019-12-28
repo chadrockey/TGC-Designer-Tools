@@ -493,7 +493,7 @@ def tkinterPrintFunction(root, textfield, message):
     textfield.bind('<Button-3>', rightClickMenu, add='')
     root.update()
 
-def runLidar(scale_entry, epsg_entry, unit_entry, printf):
+def runLidar(scale_entry, epsg_entry, printf):
     global root
 
     if not root or not hasattr(root, 'filename'):
@@ -515,18 +515,9 @@ def runLidar(scale_entry, epsg_entry, unit_entry, printf):
         alert("No action taken: Could not get valid force epsg from entry")
         return
 
-    force_unit = None
-    try:
-        unit_raw = unit_entry.get()
-        if unit_raw: # Don't process empty string
-            force_unit = float(unit_raw)
-    except:
-        alert("No action taken: Could not get valid force unit from entry")
-        return
-
     lidar_dir_path = tk.filedialog.askdirectory(initialdir=root.filename, title="Select las/laz files directory")
     if lidar_dir_path:
-        lidar_map_api.generate_lidar_previews(lidar_dir_path, sample_scale, root.filename, force_epsg=force_epsg, force_unit=force_unit, printf=printf)
+        lidar_map_api.generate_lidar_previews(lidar_dir_path, sample_scale, root.filename, force_epsg=force_epsg, printf=printf)
 
 def generateCourseFromLidar(options_entries_dict, printf):
     global root
@@ -732,17 +723,12 @@ scale_entry.insert(END, 2.0)
 epsg_label = Label(lidarControlFrame, text="Force Lidar EPSG Projection", fg=text_fg, bg=tool_bg)
 epsg_entry = tk.Entry(lidarControlFrame, width=8, justify='center')
 epsg_entry.insert(END, "")
-lidar_unit_label = Label(lidarControlFrame, text="Force Lidar Unit", fg=text_fg, bg=tool_bg)
-lidar_unit_entry = tk.Entry(lidarControlFrame, width=8, justify='center')
-lidar_unit_entry.insert(END, "")
-lidarbutton = Button(lidarControlFrame, text="Select Lidar and Generate Heightmap", command=partial(runLidar, scale_entry, epsg_entry, lidar_unit_entry, lidarPrintf))
+lidarbutton = Button(lidarControlFrame, text="Select Lidar and Generate Heightmap", command=partial(runLidar, scale_entry, epsg_entry, lidarPrintf))
 
 scale_label.pack(side=LEFT, padx=5)
 scale_entry.pack(side=LEFT, padx=5)
 epsg_label.pack(side=LEFT, padx=5)
 epsg_entry.pack(side=LEFT, padx=5)
-lidar_unit_label.pack(side=LEFT, padx=5)
-lidar_unit_entry.pack(side=LEFT, padx=5)
 lidarbutton.pack(side=LEFT, padx=5, pady=5)
 
 lidarControlFrame.pack(pady=5)
