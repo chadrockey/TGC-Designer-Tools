@@ -40,17 +40,30 @@ brushes = {
 }
 
 themes = {
-    2: "desert",
-    5: "boreal",
-    6: "tropical",
-    7: "countryside",
-    8: "harvest",
-    10: "delta",
-    11: "rustic",
-    12: "swiss",
-    13: "steppe",
-    14: "autumn",
-    15: "highlands",
+    #0: "old_rustic",
+    #1: "old_swiss"
+    2: "Desert",
+    #3: "old_autumn",
+    #4: "old_hightlands",
+    5: "Boreal",
+    6: "Tropical",
+    7: "Countryside",
+    8: "Harvest",
+    9: "Winter",
+    10: "Delta",
+    11: "Rustic",
+    12: "Swiss",
+    13: "Steppe",
+    14: "Autumn",
+    15: "Highlands",
+    16: "TPC Sawgrass",
+    17: "Atlantic Beach Country Club",
+    18: "TPC Boston",
+    19: "TPC Deere Run",
+    20: "TPC Scottsdale",
+    21: "TPC Southwind",
+    22: "TPC Summerlin",
+    #23: "boreal_alternate"
 }
 
 normal_trees = {

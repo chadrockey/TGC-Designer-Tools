@@ -221,6 +221,8 @@ def getCourseDirectory(output):
             course_json = tgc_tools.get_course_json(root.filename)
             name_entry.configure(state='normal')
             course_name_var.set(course_json["name"])
+            course_theme_number = course_json["theme"]
+            course_theme_var.set(tgc_definitions.themes[course_theme_number])
             if course_json is not None:
                 drawCourse(course_json)
         except:
@@ -268,6 +270,15 @@ course_types = [
     ('All files', '*'), 
 ]
 
+def setCourseTheme(name1, name2, op):
+    global course_theme_var
+    global course_json
+    if course_json is not None:
+        theme_index_list = list(tgc_definitions.themes.keys())
+        theme_list = list(tgc_definitions.themes.values())
+        new_course_theme = int(theme_index_list[theme_list.index(course_theme_var.get())])
+        course_json["theme"] = new_course_theme
+
 def importCourseAction():
     global root
     global course_json
@@ -284,6 +295,8 @@ def importCourseAction():
         course_json = tgc_tools.get_course_json(root.filename)
         name_entry.configure(state='normal')
         course_name_var.set(course_json["name"])
+        course_theme_number = course_json["theme"]
+        course_theme_var.set(tgc_definitions.themes[course_theme_number])
         drawCourse(course_json)
 
 def exportCourseAction():
@@ -306,6 +319,10 @@ def exportCourseAction():
             course_json["name"] = new_course_name
             # Need to update the metadata file or it won't show up right in the course list
             tgc_tools.set_course_metadata_name(root.filename, course_json["name"])
+        theme_index_list = list(tgc_definitions.themes.keys())
+        theme_list = list(tgc_definitions.themes.values())
+        new_course_theme = int(theme_index_list[theme_list.index(course_theme_var.get())])
+        course_json["theme"] = new_course_theme
         drawPlaceholder()
         tgc_tools.pack_course_file(root.filename, None, dest_file, course_json)
         drawCourse(course_json)
@@ -583,7 +600,7 @@ def importOSMFile(options_entries_dict, printf):
             printf("Done Rendering Course Preview")
 
 root = tk.Tk()
-root.geometry("800x600")
+root.geometry("800x650")
 
 style = ttk.Style()
 style.theme_create( "TabStyle", parent="alt", settings={
@@ -643,6 +660,17 @@ name_entry.configure(state='disabled')
 name_entry.configure(disabledbackground="grey50")
 name_entry.pack(side=LEFT, padx=10, pady=5)
 name_frame.pack(pady=5)
+
+theme_list = list(tgc_definitions.themes.values())
+theme_frame = Frame(tool_buttons_frame, bg=tool_bg)
+Label(theme_frame, text="Theme", fg=text_fg, bg=tool_bg).pack(side=LEFT, padx=5)
+course_theme_var = tk.StringVar()
+course_theme_var.trace("w", setCourseTheme)
+course_theme_var.set(theme_list[0])
+theme_option = tk.OptionMenu(theme_frame, course_theme_var, *theme_list)
+theme_option.config(width=25)
+theme_option.pack(side=LEFT, padx=10, pady=5)
+theme_frame.pack(pady=5)
 
 apb = Button(tool_buttons_frame, text="Auto Position", command=autoPositionAction)
 apb.pack(pady=5)
