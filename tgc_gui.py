@@ -251,8 +251,9 @@ def disableAllChildren(var, frame):
             frame['state'] = 'disable'
 
 def validateCourseName(action_type, index, value, previous, new_text, validation_types, validation_type, widget_name):
-    if len(value) > 32:
-        return False
+    # We also can submit as long of a course name as we want, so remove this limit!
+    #if len(value) > 32:
+    #    return False
     return True
     # Looks like they accept almost all characters, wow...
     '''allowed_chars = string.ascii_letters + string.digits + ' '
