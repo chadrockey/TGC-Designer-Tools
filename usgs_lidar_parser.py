@@ -99,11 +99,24 @@ def proj_from_epsg(epsg, printf=print):
     # Try to get WKT for these epsg codes from webservices, need this to get a definite value for unit
     try:
         epsg_response = requests.get('http://prj2epsg.org/epsg/' + str(epsg) + '.json', allow_redirects=False, timeout=5.0)
+        if epsg_response.ok:
+            wkt = epsg_response.json()['wkt']
+        elif epsg_response.status_code == 404:
+            # try to get from spatialreference.org instead
+            printf("epsg not found at prj2epsg.org, trying spatialreference.org instead.")
+            sr_response = requests.get('https://www.spatialreference.org/ref/esri/' + str(epsg) + '/prj/')
+            if sr_response.ok:
+                wkt = sr_response.text
+            else:
+                sr_response.raise_for_status()
+        else:
+            epsg_response.raise_for_status()
+
     except:
-        printf("Problem looking up epsg with prj2epsg.org, try running the tool later.")
+        printf("Problem looking up epsg with prj2epsg.org and/or spatialreference.org, try running the tool later.")
         raise
-    epsg_json = epsg_response.json()
-    return get_proj_and_unit_from_wkt(epsg_json['wkt'], printf=printf)
+    
+    return get_proj_and_unit_from_wkt(wkt, printf=printf)
 
 
 def convert_latlon_to_utm_espg(lat, lon):
