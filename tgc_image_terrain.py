@@ -269,14 +269,8 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
                 course_json["placedObjects2"].append(o)
 
     # Automatically adjust course elevation
-    if options_dict.get('auto_elevation', True):
-        printf("Moving course to lowest valid elevation")
-        course_json = tgc_tools.elevate_terrain(course_json, None, printf=printf)
-
-    # Automatic rotate to fit if needed
-    if options_dict.get('auto_position', True):
-        printf("Adjusting course to fit on map")
-        course_json = tgc_tools.auto_position_course(course_json, printf=printf)
+    printf("Moving course to lowest valid elevation")
+    course_json = tgc_tools.elevate_terrain(course_json, None, printf=printf)
 
     printf("Course Description Complete")
 

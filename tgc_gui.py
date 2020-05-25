@@ -645,9 +645,6 @@ name_entry.configure(disabledbackground="grey50")
 name_entry.pack(side=LEFT, padx=10, pady=5)
 name_frame.pack(pady=5)
 
-apb = Button(tool_buttons_frame, text="Auto Position", command=autoPositionAction)
-apb.pack(pady=5)
-
 # Buttons that move things
 move_frame = Frame(tool_buttons_frame, bg=tool_bg)
 Label(move_frame, text="West->East", fg=text_fg, bg=tool_bg).grid(row=0, sticky=W, padx=5)
@@ -835,12 +832,6 @@ courseSubFrame = Frame(courseOptionsFrame, bg=check_bg) # Not needed for anythin
 
 Label(courseOptionsFrame, text='Course Options', fg=text_fg, bg=tool_bg).pack(pady=(15,10))
 
-options_entries_dict["auto_elevation"] = tk.BooleanVar()
-elevationCheck = Checkbutton(courseSubFrame, text="Auto Elevation Offset", variable=options_entries_dict["auto_elevation"], fg=check_fg, bg=check_bg)
-elevationCheck.select() # This option doesn't make lidar look great, but may play better
-options_entries_dict["auto_position"] = tk.BooleanVar()
-positionCheck = Checkbutton(courseSubFrame, text="Auto Position and Rotate", variable=options_entries_dict["auto_position"], fg=check_fg, bg=check_bg)
-positionCheck.deselect()
 options_entries_dict["add_background"] = tk.BooleanVar()
 backgroundCheck = Checkbutton(courseSubFrame, text="Add Background Terrain/Remove Cliffs", variable=options_entries_dict["add_background"], fg=check_fg, bg=check_bg)
 backgroundCheck.deselect()
@@ -863,15 +854,13 @@ purgeWaterCheck.deselect()
 
 # Pack the osmControlFrame
 courseSubFrame.pack(padx=5, pady=5, fill=X, expand=True)
-elevationCheck.grid(row=0, columnspan=2, sticky=W, padx=5)
-positionCheck.grid(row=1, columnspan=2, sticky=W, padx=5)
-backgroundCheck.grid(row=2, columnspan=2, sticky=W, padx=5)
-Label(courseSubFrame, text="Background Scale", fg=check_fg, bg=check_bg).grid(row=3, column=0, sticky=W, padx=5)
-bgentry.grid(row=4, column=1, sticky=W, padx=5)
-lidarTreeCheck.grid(row=5, columnspan=2, sticky=W, padx=5)
-treeVarietyCheck.grid(row=6, columnspan=2, sticky=W, padx=5)
-fillWaterCheck.grid(row=7, columnspan=2, sticky=W, padx=5)
-purgeWaterCheck.grid(row=8, columnspan=2, sticky=W, padx=5)
+backgroundCheck.grid(row=0, columnspan=2, sticky=W, padx=5)
+Label(courseSubFrame, text="Background Scale", fg=check_fg, bg=check_bg).grid(row=1, column=0, sticky=W, padx=5)
+bgentry.grid(row=1, column=1, sticky=W, padx=5)
+lidarTreeCheck.grid(row=2, columnspan=2, sticky=W, padx=5)
+treeVarietyCheck.grid(row=3, columnspan=2, sticky=W, padx=5)
+fillWaterCheck.grid(row=4, columnspan=2, sticky=W, padx=5)
+purgeWaterCheck.grid(row=5, columnspan=2, sticky=W, padx=5)
 
 # Pack the two option frames side by side
 osmControlFrame.pack(side=LEFT, anchor=N, padx=5)
