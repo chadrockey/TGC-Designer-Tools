@@ -197,7 +197,8 @@ def request_course_outline(course_image, sat_image=None, bundle=None, printf=pri
     instruction_frame = tk.Frame(popup)
     B1 = ttk.Button(instruction_frame, text="Accept", command = partial(closeWindow, popup, bundle, input_size, im.size, printf))
     label = ttk.Label(instruction_frame, text="Draw the rectangle around the course on the left (in black and white)\n \
-                                   Then close this window using the Accept Button.", justify=CENTER)
+                                   Then close this window using the Accept Button.\n \
+                                   IF YOU DON'T SEE YOUR COURSE IN BOTH BOXES YOU HAVE THE WRONG EPSG!", justify=CENTER)
     label.pack(fill="x", padx=10, pady=10)
     B1.pack()
 
@@ -281,7 +282,10 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
     lower_right_latlon = pc.enuToLatLon(*lower_right_enu)
     # Order is South, West, North, East
     result = OSMTGC.getOSMData(lower_right_latlon[0], upper_left_latlon[1], upper_left_latlon[0], lower_right_latlon[1], printf=printf)
-    im = OSMTGC.addOSMToImage(result.ways, im, pc, sample_scale, printf=printf)
+    if result:
+        im = OSMTGC.addOSMToImage(result.ways, im, pc, sample_scale, printf=printf)
+    else:
+        printf("OpenStreetMap download failed.  You won't see helpful OSM outlines or drawings on your preview or mask.")
 
     # Keep API out of code
     mapquest_api_key = None
