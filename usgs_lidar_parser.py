@@ -5,45 +5,12 @@ import laspy
 import math
 import numpy
 import os
-import requests
 from pathlib import Path
-from urllib.request import urlopen, HTTPError, URLError
-from urllib.parse import urlencode
 import xml.etree.ElementTree as ET
 
 import pyproj
 
 from GeoPointCloud import *
-
-def wkt_to_epsg(wkt, printf=print):
-    '''
-    Function borrowed from https://github.com/cmollet/sridentify, don't want or need the local database aspects
-    Copyright 2018 Cory Mollet
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    '''
-    url = 'http://prj2epsg.org/search.json?'
-    params = {
-        'mode': 'wkt',
-        'terms': wkt
-    }
-    req = urlopen(url + urlencode(params), timeout=5.0)
-    raw_resp = req.read()
-    try:
-        resp = json.loads(raw_resp.decode('utf-8'))
-    except json.JSONDecodeError:
-        printf('API call succeeded but response\
-                is not JSON: %s' % raw_resp)
-        return None
-    except:
-        printf("Problem with prj2epsg.org, try running the tool later.")
-        raise
-
-    return int(resp['codes'][0]['code'])
 
 def get_unit_multiplier_from_epsg(epsg):
     # Can't find any lightweight way to do this, but I depend heavily on pyproj right now
@@ -77,12 +44,7 @@ def is_epsg_datum(epsg):
         pass
     return True # Invalidate this EPSG if it can't be determined or used
 
-# Allow forcing epsg here in case prj2epsg is down
-def get_proj_and_unit_from_wkt(wkt, force_epsg=None, printf=print):
-    if force_epsg is None:
-        epsg = wkt_to_epsg(wkt, printf=printf) # Use epsg whenever possible
-    else:
-        epsg = force_epsg
+def proj_from_epsg(epsg, printf=print):
     if is_epsg_datum(epsg):
         # Not the right kind of coordinate reference system
         printf("EPSG is not map projection, skipping: " + str(epsg))
@@ -92,32 +54,7 @@ def get_proj_and_unit_from_wkt(wkt, force_epsg=None, printf=print):
         proj = pyproj.Proj(init='epsg:'+str(epsg))
         unit = get_unit_multiplier_from_epsg(epsg)
         return (proj, unit)
-    printf("EPSG not found for WKT: \n" + wkt + "\n")
     return None, 0.0
-
-def proj_from_epsg(epsg, printf=print):
-    # Try to get WKT for these epsg codes from webservices, need this to get a definite value for unit
-    try:
-        epsg_response = requests.get('http://prj2epsg.org/epsg/' + str(epsg) + '.json', allow_redirects=False, timeout=5.0)
-        if epsg_response.ok:
-            wkt = epsg_response.json()['wkt']
-        elif epsg_response.status_code == 404:
-            # try to get from spatialreference.org instead
-            printf("epsg not found at prj2epsg.org, trying spatialreference.org instead.")
-            sr_response = requests.get('https://www.spatialreference.org/ref/esri/' + str(epsg) + '/prj/')
-            if sr_response.ok:
-                wkt = sr_response.text
-            else:
-                sr_response.raise_for_status()
-        else:
-            epsg_response.raise_for_status()
-
-    except:
-        printf("Problem looking up epsg with prj2epsg.org and/or spatialreference.org, try running the tool later.")
-        raise
-    
-    return get_proj_and_unit_from_wkt(wkt, printf=printf)
-
 
 def convert_latlon_to_utm_espg(lat, lon):
     utm_band = str((math.floor((lon + 180) / 6 ) % 60) + 1)
@@ -158,30 +95,10 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                 unit = 0.0 # Don't assume unit
 
                 if force_epsg is not None:
-                    try:
-                        proj, unit = proj_from_epsg(force_epsg, printf=printf)
-                    except:
-                        # Prj2epsg may be down, don't verify epsg data
-                        printf("prj2epsg.org may be down, using backup for force_epsg")
-                        proj, unit = get_proj_and_unit_from_wkt(None, force_epsg=force_epsg, printf=printf)
+                    proj, unit = proj_from_epsg(force_epsg, printf=printf)
 
                 # Try to get projection data from laspy
                 for v in f.header.vlrs:
-                    # Parse the .prj contents in the metadata, look for WKT
-                    try:
-                        if proj is not None:
-                            break
-                        for t in str(v.parsed_body[0]).split('\\n'):
-                            try:
-                                proj, unit = get_proj_and_unit_from_wkt(t, printf=printf)
-                                if proj is not None:
-                                    printf("Found WKT Projection from lidar file")
-                                    break
-                            except:
-                                pass
-                    except:
-                        pass
-
                     # Look for GEOTIFF tags or something?  This is a list of values and EPSG codes
                     if proj is None and v.parsed_body is not None and len(v.parsed_body) > 3:
                         try:
@@ -214,29 +131,6 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                         except:
                             pass
 
-                # Wasn't in the las files, look for a prj file
-                if proj is None:
-                    # Find the PRJ file with the name closest matching to the las/laz
-                    highest_match = 0.0
-                    prj = None
-                    for x in list(Path(d).glob('*.prj')):
-                        score = SequenceMatcher(None, str(filename), str(x)).ratio()
-                        if score > highest_match:
-                            highest_match = score
-                            prj = x
-
-                    if prj is not None:
-                        printf("Using PRJ file: " + prj.name)
-
-                        try:
-                            with open(prj, mode='r') as p:
-                                proj, unit = get_proj_and_unit_from_wkt(p.read(), printf=printf)
-                                if proj is not None:
-                                    printf("Found WKT Projection from PRJ file")
-                        except:
-                            printf("Could not parse: " + prj)
-                            pass
-
                 # Wasn't in the las files, do the difficult search in metadata xmls
                 if proj is None:
                     # Find the XML file with the name closest matching to the las/laz
@@ -254,27 +148,6 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                         printf("Using metadata: " + xml.name)
                         tree = ET.parse(xml)
                         root = tree.getroot()
-
-                        # Get the supplinf tag
-                        for supplinf in root.iter('supplinf'):
-                            try:
-                                supp_json = json.loads(supplinf.text.split(';')[0])
-                            except json.JSONDecodeError:
-                                printf("Could not load supplinf")
-
-                            # Parse the .prj contents in the metadata
-                            try:
-                                proj, unit = get_proj_and_unit_from_wkt(supp_json['mapProjectionDefinitionField'], printf=printf)
-                                printf("Found WKT from metadata file")
-                            except:
-                                pass
-
-                        # Look for alternate Metadata formats
-                        if proj is None:
-                            # Get the .prj contents
-                            for c in root.findall('MapProjectionDefinition'):
-                                proj, unit = get_proj_and_unit_from_wkt(c.text, printf=printf)
-                                printf("Found PRJ WKT from metadata file")
 
                         # If unit not in CRS, try to find it in a tag
                         if unit == 0.0:
@@ -393,19 +266,6 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                         converted_z.append(z2)
 
                 pc.addDataSet(numpy.array(converted_x), numpy.array(converted_y), numpy.array(converted_z), numpy.array(f.intensity), numpy.array(f.classification).astype(int))
-        except HTTPError as e:
-            printf("Could not load " + filename)
-            printf("We rely on a web service to get lidar information")
-            printf("If you can't reach prj2epsg.org, lidar import won't work for now")
-            printf("""Failed to retrieve data from prj2epsg.org API:\n
-                        Status: %s \n
-                        Message: %s""" % (e.code, e.reason))
-        except URLError as e:
-            printf("Could not load " + filename)
-            printf("We rely on a web service to get lidar information")
-            printf("If you can't reach prj2epsg.org, lidar import won't work for now")
-            printf("""Failed to retrieve data from prj2epsg.org API:\n
-                        Message: %s""" % (e.reason))
         except:
             printf("Could not load " + filename + " Please report this issue.")
 
