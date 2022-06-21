@@ -1,6 +1,6 @@
 imutils==0.5.2
 matplotlib==3.0.2
-numpy==1.15.0
+numpy==1.22.0
 opencv-python==4.0.0.21
 overpy==0.4
 Pillow==6.2.0
