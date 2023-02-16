@@ -66,6 +66,10 @@ Map water on the outside lip.
 
 You'll be able to pull in new OpenStreetMap data whenever you want by re-generating your course, so don't worry if you can't complete the entire course or to the level of accuracy that you want.
 
+[OpenStreetMap](https://www.openstreetmap.org/about) is a global collaborative project that is used by millions of people. Be considerate and ensure the data you are adding is correct and conforms to the established conventions of OpenStreetMap. Do not incorrectly add, delete or modify data just for TCG.
+
+See the [OpenStreetMap wiki](https://wiki.openstreetmap.org/wiki/Main_Page) page about [golf courses](https://wiki.openstreetmap.org/wiki/Tag:leisure%3Dgolf_course) for more information on how to map them and how to avoid [common mistakes](https://wiki.openstreetmap.org/wiki/Tag:leisure%3Dgolf_course#Common_mapping_pitfalls) in the process.
+
 ## Running the software
 
 ![alt text](https://i.imgur.com/EyvFDBD.png "Adding Course to the Folder")
