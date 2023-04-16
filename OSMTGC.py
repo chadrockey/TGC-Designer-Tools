@@ -399,9 +399,13 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
         waterway_type = way.tags.get("waterway", None)
         building_type = way.tags.get("building", None)
         natural_type = way.tags.get("natural", None)
+        highway_type = way.tags.get("highway", None)
+        golf_cart_type = way.tags.get("golf_cart", None)
+        foot_type = way.tags.get("foot", None)
+        amenity_type = way.tags.get("amenity", None)
 
         # Double checking types, but things REALLY slow down if we do the necessary bounding box checks without checking if it's a type we even care about
-        if all(v is None for v in [golf_type, waterway_type, building_type, natural_type]):
+        if all(v is None for v in [golf_type, waterway_type, building_type, natural_type, highway_type, amenity_type]):
             continue
 
         area = False
@@ -483,6 +487,20 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
         elif natural_type is not None:
             if natural_type == "wood" and options_dict.get('tree', True):
                 course_json["surfaceSplines"].append(newForest(nds))
+        elif highway_type is not None and highway_type not in ["proposed", "construction"]:
+            implicit_foot_access = {"motorway": "no",
+                                    "motorway_link": "no",
+                                    "trunk": "no",
+                                    "trunk_link": "no"}
+
+            way_foot_access = foot_type if foot_type is not None else implicit_foot_access.get(highway_type, "yes")
+
+            if golf_cart_type is not None and golf_cart_type != "no" and options_dict.get('cartpath', True):
+                course_json["surfaceSplines"].append(newCartPath(nds, area=area))
+            elif way_foot_access != "no" and options_dict.get('path', True) and options_dict.get('all_osm_paths', True):
+                course_json["surfaceSplines"].append(newWalkingPath(nds, area=area))
+        elif amenity_type == "parking" and golf_cart_type is not None and golf_cart_type != "no" and options_dict.get('cartpath', True):
+            course_json["surfaceSplines"].append(newCartPath(nds, area=True))
 
     # Insert all the found holes
     for key in sorted(hole_dictionary):
