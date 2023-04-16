@@ -326,7 +326,7 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
         else: # Shrink width
             req_width = int(1500.0*float(image_width)/float(image_height))
 
-        img_url_request = "https://open.mapquestapi.com/staticmap/v5/map?key=MAPQUEST_API_KEY&scalebar=true&format=png&center=" + \
+        img_url_request = "https://www.mapquestapi.com/staticmap/v5/map?key=MAPQUEST_API_KEY&scalebar=true&format=png&center=" + \
                                 str(gps_center[0]) + "," + str(gps_center[1]) + \
                                 "&type=hyb&zoom=" + str(zoom_level) + "&size=" + str(req_width) + "," + str(req_height)
 
