@@ -1,0 +1,113 @@
+[
+  {
+    "id": 2,
+    "name": "Desert"
+  },
+  {
+    "id": 5,
+    "name": "Boreal"
+  },
+  {
+    "id": 6,
+    "name": "Tropical"
+  },
+  {
+    "id": 7,
+    "name": "Countryside"
+  },
+  {
+    "id": 8,
+    "name": "Harvest"
+  },
+  {
+    "id": 9,
+    "name": "Winter"
+  },
+  {
+    "id": 10,
+    "name": "Delta"
+  },
+  {
+    "id": 11,
+    "name": "Rustic",
+    "trees": [
+      {
+        "id": 0,
+        "name": "Poplar",
+        "height": 4.0,
+        "width": 3.0,
+        "type": "tree"
+      },
+      {
+        "id": 1,
+        "name": "Poplar",
+        "height": 4.5,
+        "width": 3.5,
+        "type": "tree"
+      },
+      {
+        "id": 2,
+        "name": "Birch",
+        "height": 3.5,
+        "width": 3.0,
+        "type": "tree"
+      },
+      {
+        "id": 13,
+        "name": "Pine",
+        "height": 5.0,
+        "width": 2.0,
+        "type": "skinny"
+      },
+      {
+        "id": 24,
+        "name": "Bush",
+        "type": "bush"
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "name": "Swiss"
+  },
+  {
+    "id": 13,
+    "name": "Steppe"
+  },
+  {
+    "id": 14,
+    "name": "Autumn"
+  },
+  {
+    "id": 15,
+    "name": "Highlands"
+  },
+  {
+    "id": 16,
+    "name": "TPC Sawgrass"
+  },
+  {
+    "id": 17,
+    "name": "Atlantic Beach Country Club"
+  },
+  {
+    "id": 18,
+    "name": "TPC Boston"
+  },
+  {
+    "id": 19,
+    "name": "TPC Deere Run"
+  },
+  {
+    "id": 20,
+    "name": "TPC Scottsdale"
+  },
+  {
+    "id": 21,
+    "name": "TPC Southwind"
+  },
+  {
+    "id": 22,
+    "name": "TPC Summerlin"
+  }
+]
