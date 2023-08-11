@@ -9,5 +9,5 @@ pyproj==1.9.6
 requests==2.21.0
 scikit-image==0.14.2
 scipy==1.2.0
-urllib3==1.24.2
+urllib3==1.26.5
 -e git+git://github.com/chadrockey/laspy@14_fix#egg=laspy
