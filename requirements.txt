@@ -3,7 +3,7 @@ matplotlib==3.0.2
 numpy==1.15.0
 opencv-python==4.0.0.21
 overpy==0.4
-Pillow==6.2.0
+Pillow==9.3.0
 PyInstaller==3.4
 pyproj==1.9.6
 requests==2.21.0
