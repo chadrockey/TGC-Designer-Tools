@@ -287,66 +287,31 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
     else:
         printf("OpenStreetMap download failed.  You won't see helpful OSM outlines or drawings on your preview or mask.")
 
-    # Keep API out of code
-    mapquest_api_key = None
-    im_map = None
-    try:
-        this_file_directory = os.path.dirname(os.path.realpath(__file__))
-        with open(this_file_directory + os.sep + "MAPQUEST_API_KEY.txt", "r") as f:
-            mapquest_api_key = f.read()
-    except:
-        pass
-    if mapquest_api_key is not None:
-        # Grab a preview image approximately the same to help reference the lidar data.
-        # Set margin to be 1/8 of image size to get preview to about 1 pixel per two meters
-        origin_projected_coordinates = pc.origin
-        gps_center = pc.projToLatLon(origin_projected_coordinates[0] + pc.width / 2.0, origin_projected_coordinates[1] + pc.height / 2.0)
+    # This is where MapQuest sat image was retrieved before the API switched to paid only
+    origin_projected_coordinates = pc.origin
+    gps_center = pc.projToLatLon(origin_projected_coordinates[0] + pc.width / 2.0, origin_projected_coordinates[1] + pc.height / 2.0)
 
-        # Determine how zoomed in the map should be
-        zoom_level = 20 # Most zoomed in possible
-        max_dimension = max([image_width, image_height])
-        if sample_scale*max_dimension < 500:
-            zoom_level = 19 # roughly 437m
-        elif sample_scale*max_dimension < 900:
-            zoom_level = 18 # roughly 875m
-        elif sample_scale*max_dimension < 1800:
-            zoom_level = 17 # roughly 1750m
-        elif sample_scale*max_dimension < 3600:
-            zoom_level = 16 # roughly 3500m
-        elif sample_scale*max_dimension < 7000:
-            zoom_level = 15 # roughly 7000m
-        else:
-            zoom_level = 14 # Over 7000m
+    # Make an image that shows the gps center in text that's 400x400
+    # This is to help the user understand where the lidar data is located
+    # The image is 400x400 because that's a good size for a preview
+    # The text is the GPS coordinates of the center of the lidar data
+    # The text is in the center of the image
 
-        # Determine the aspect ratio
-        req_height = 1500
-        req_width = 1500
-        if max_dimension == image_width: # Shrink height
-            req_height = int(1500.0*float(image_height)/float(image_width))
-        else: # Shrink width
-            req_width = int(1500.0*float(image_width)/float(image_height))
+    # Make a blank image
+    sat_image = np.zeros((400,400,3), np.uint8)
+    # Make the image white
+    sat_image[:] = (255, 255, 255)
+    # Make the text
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    fontScale = 0.5
+    fontColor = (0,0,0)
+    lineType = 2
+    cv2.putText(sat_image, "Sat Images Disabled As of 2024", (10, 50), font, fontScale, fontColor, lineType)
+    cv2.putText(sat_image, "Make sure a few OSM features show on the left", (10, 150), font, fontScale, fontColor, lineType)
+    cv2.putText(sat_image, "GPS Center Coordinates: ", (10, 250), font, fontScale, fontColor, lineType)
+    cv2.putText(sat_image, str(gps_center), (10, 350), font, fontScale, fontColor, lineType)
 
-        img_url_request = "https://www.mapquestapi.com/staticmap/v5/map?key=MAPQUEST_API_KEY&scalebar=true&format=png&center=" + \
-                                str(gps_center[0]) + "," + str(gps_center[1]) + \
-                                "&type=hyb&zoom=" + str(zoom_level) + "&size=" + str(req_width) + "," + str(req_height)
-
-        printf("Mapquest Image URL Request: " + img_url_request)
-
-        # Don't print the Mapquest API Key to users
-        img_url_request = img_url_request.replace("MAPQUEST_API_KEY", mapquest_api_key)
-
-        try:
-            # TODO switch to requests ?
-            with urllib.request.urlopen(img_url_request) as url:
-                map_image = url.read()
-
-            nparr = np.frombuffer(map_image, np.uint8)
-            im_map = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            im_map = cv2.cvtColor(im_map, cv2.COLOR_BGR2RGB)
-        except urllib.error.HTTPError as err:
-            printf("Could not get sat preview: " + str(err))
-
-    request_course_outline(im, im_map, bundle=(pc, img_points, sample_scale, output_dir_path, result), printf=printf)
+    request_course_outline(im, sat_image, bundle=(pc, img_points, sample_scale, output_dir_path, result), printf=printf)
 
 def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_results=None, printf=print):
     global lower_x
